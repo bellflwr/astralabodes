@@ -68,7 +68,7 @@ scene.add(mod_group);
 let modules: Modules = new Modules(mod_group);
 
 load_kinds(() => {
-    let m = new Module(kinds[0]);
+    let m = new Module(kinds.get("Module 1"));
     modules.add_module(m);
     console.log(m.object.rotation);
     m.primary_dir = Side.FRONT;
