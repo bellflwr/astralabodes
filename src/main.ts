@@ -26,6 +26,7 @@ const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
 const cube = new THREE.Mesh(geometry, material);
 scene.add(cube);
 cube.position.x = 2;
+
 renderer.domElement.addEventListener("pointerdown", (event) => {
     const mouse = new THREE.Vector2(
         (event.clientX / window.innerWidth) * 2 - 1,
@@ -47,12 +48,12 @@ function animate() {
 
     if (transitioning) {
         controls.target.lerp(transitionTarget, transitionSpeed);
-        // If close enough, snap to target and stop transitioning
         if (controls.target.distanceTo(transitionTarget) < 0.01) {
             controls.target.copy(transitionTarget);
             transitioning = false;
         }
     }
+
     controls.update();
 
     renderer.render(scene, camera);
