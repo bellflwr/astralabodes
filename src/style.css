@@ -50,3 +50,65 @@
     z-index: 101;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
+
+#evaluate-btn {
+    position: fixed;
+    bottom: 24px;
+    right: 32px;
+    background: #f7b801;
+    color: #222;
+    border: none;
+    border-radius: 12px;
+    padding: 16px 32px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    z-index: 102;
+    transition: background 0.2s;
+}
+#evaluate-btn:hover {
+    background: #ffe066;
+}
+
+.modal-hidden {
+    display: none !important;
+}
+#crew-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+}
+.modal-content {
+    background: #fff;
+    padding: 32px 40px;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+    text-align: center;
+}
+.crew-options {
+    display: flex;
+    gap: 24px;
+    margin-top: 24px;
+    justify-content: center;
+}
+.crew-btn {
+    background: #4f5d75;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 14px 32px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.crew-btn:hover {
+    background: #2d3142;
+}

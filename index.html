@@ -15,14 +15,24 @@
             }
         </style>
     </head>
-    <body>
+    <body>  
             <div id="problems-box">Problems: <span id="problems-count">0</span></div>
             <div id="cost-box">Cost: $<span id="cost-value">0</span></div>
             <div id="modules-bar">
                 <button class="module-btn">Module 1</button>
                 <button class="module-btn">Module 2</button>
                 <button class="module-btn">Module 3</button>
+                <button id="evaluate-btn">Evaluate</button>
             </div>
+                <div id="crew-modal" class="modal-hidden">
+                    <div class="modal-content">
+                        <h2>Select Crew Size</h2>
+                        <div class="crew-options">
+                            <button class="crew-btn" data-size="4">4</button>
+                            <button class="crew-btn" data-size="6">6</button>
+                        </div>
+                    </div>
+                </div>
             <script type="module" src="/src/main.ts"></script>
     </body>
 </html>

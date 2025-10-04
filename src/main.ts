@@ -1,3 +1,4 @@
+// ...existing code...
 import "./style.css";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
@@ -9,6 +10,17 @@ const camera = new THREE.PerspectiveCamera(
     0.1,
     1000
 );
+
+const loader = new THREE.TextureLoader();
+const texture = loader.load(
+    './public/images/milky_way_skybox.jpg',
+    () => {
+        texture.mapping = THREE.EquirectangularReflectionMapping;
+        texture.colorSpace = THREE.SRGBColorSpace;
+        scene.background = texture;
+    }
+)
+
 
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -42,6 +54,10 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
 });
 camera.position.z = 5;
 
+function init() {
+    skyboxGeo = new THREE.BoxGeometry(10000, 10000, 10000);
+}
+
 function animate() {
     cube.rotation.x += 0.01;
     cube.rotation.y += 0.01;
@@ -57,4 +73,34 @@ function animate() {
     controls.update();
 
     renderer.render(scene, camera);
+}
+
+    // UI Interactivity for Evaluate button and Crew Modal
+const evaluateBtn = document.getElementById("evaluate-btn") as HTMLButtonElement;
+const crewModal = document.getElementById("crew-modal") as HTMLDivElement;
+const crewBtns = document.querySelectorAll(".crew-btn");
+
+// Ensure modal is hidden on page load
+if (crewModal) {
+    crewModal.classList.add("modal-hidden");
+}
+
+if (evaluateBtn && crewModal) {
+    evaluateBtn.addEventListener("click", () => {
+        crewModal.classList.remove("modal-hidden");
+    });
+    crewBtns.forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            const size = (e.target as HTMLButtonElement).dataset.size;
+            // You can handle the selected crew size here
+            console.log("Selected crew size:", size);
+            crewModal.classList.add("modal-hidden");
+        });
+    });
+    // Optional: close modal when clicking outside modal-content
+    crewModal.addEventListener("click", (e) => {
+        if (e.target === crewModal) {
+            crewModal.classList.add("modal-hidden");
+        }
+    });
 }
