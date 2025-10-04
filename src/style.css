@@ -1,0 +1,52 @@
+#modules-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 60px;
+    background: rgba(30, 30, 40, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    z-index: 100;
+}
+.module-btn {
+    background: #4f5d75;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.module-btn:hover {
+    background: #2d3142;
+}
+#cost-box {
+    position: fixed;
+    top: 20px;
+    right: 32px;
+    background: #f7b801;
+    color: #222;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    z-index: 101;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+#problems-box {
+    position: fixed;
+    top: 20px;
+    left: 32px;
+    background: #ef233c;
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    z-index: 101;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
