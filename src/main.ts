@@ -16,6 +16,8 @@ const camera = new THREE.PerspectiveCamera(
     1000
 );
 
+let building = false;
+
 const loader = new THREE.TextureLoader();
 const texture = loader.load(
     './public/images/milky_way_skybox.jpg',
@@ -41,8 +43,13 @@ const controls = new OrbitControls(camera, renderer.domElement);
 const geometry = new THREE.BoxGeometry(1, 1, 1);
 const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
 const cube = new THREE.Mesh(geometry, material);
-scene.add(cube);
-// cube.position.x = 2;
+
+const gridSize = 84;
+const gridSpacing = 12;
+const gridHelper = new THREE.GridHelper(gridSize * gridSpacing, gridSize, 0x888888, 0x444444);
+scene.add(gridHelper);
+
+const placedCubes: THREE.Mesh[] = [];
 
 const point_light_color = 0xffffff;
 const point_light_intensity = 3;
@@ -83,17 +90,36 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
     );
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObject(cube);
-    if (intersects.length > 0) {
-        transitionTarget.copy(cube.position);
-        transitioning = true;
+
+    if (!building) {
+        const intersects = raycaster.intersectObject(cube);
+        if (intersects.length > 0) {
+            transitionTarget.copy(cube.position);
+            transitioning = true;
+        }
+    } else {
+        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const intersectPoint = new THREE.Vector3();
+        raycaster.ray.intersectPlane(plane, intersectPoint);
+
+        let x = Math.round(intersectPoint.x / gridSpacing);
+        let z = Math.round(intersectPoint.z / gridSpacing);
+        if (x >= -gridSize/2 && x < gridSize/2 && z >= -gridSize/2 && z < gridSize/2) {
+            const alreadyPlaced = placedCubes.some(c => c.position.x === x * gridSpacing && c.position.z === z * gridSpacing);
+            if (!alreadyPlaced) {
+                const newCube = new THREE.Mesh(geometry, material.clone());
+                newCube.position.set(x * gridSpacing, 0.5, z * gridSpacing);
+                scene.add(newCube);
+                placedCubes.push(newCube);
+                // Turn off building mode
+                building = false;
+                if (module1Btn) module1Btn.classList.remove("active");
+            }
+        }
     }
 });
 camera.position.z = 5;
 
-function init() {
-    skyboxGeo = new THREE.BoxGeometry(10000, 10000, 10000);
-}
 
 function animate() {
     cube.rotation.x += 0.01;
@@ -112,10 +138,11 @@ function animate() {
     renderer.render(scene, camera);
 }
 
-    // UI Interactivity for Evaluate button and Crew Modal
+// UI Interactivity for Evaluate button, Crew Modal, and Module 1
 const evaluateBtn = document.getElementById("evaluate-btn") as HTMLButtonElement;
 const crewModal = document.getElementById("crew-modal") as HTMLDivElement;
 const crewBtns = document.querySelectorAll(".crew-btn");
+const module1Btn = document.querySelector(".module-btn") as HTMLButtonElement;
 
 // Ensure modal is hidden on page load
 if (crewModal) {
@@ -139,5 +166,13 @@ if (evaluateBtn && crewModal) {
         if (e.target === crewModal) {
             crewModal.classList.add("modal-hidden");
         }
+    });
+}
+
+// Module 1 button toggles building mode
+if (module1Btn) {
+    module1Btn.addEventListener("click", () => {
+        building = !building;
+        module1Btn.classList.toggle("active", building);
     });
 }
