@@ -1,4 +1,4 @@
-import { Object3D, Vector3 } from "three";
+import { BoxGeometry, MeshBasicMaterial, Mesh, Object3D, Vector3 } from "three";
 import type { ModuleKind } from "./module_kind";
 import { direction_vectors, get_euler_from_directions, Side } from "./sides";
 
@@ -7,11 +7,16 @@ export class Module {
     secondary_dir_: Side = Side.TOP;
     object: Object3D;
     kind: ModuleKind;
+    hitbox: Object3D;
 
     constructor(kind: ModuleKind) {
         this.kind = kind;
 
         this.object = this.kind.model.clone();
+
+        const geo = new BoxGeometry(12, 12, 12);
+        const mat = new MeshBasicMaterial({ visible: false });
+        this.hitbox = new Mesh(geo, mat);
     }
 
     get primary_dir(): Side {
@@ -50,5 +55,6 @@ export class Module {
 
     set position(value: Vector3) {
         this.object.position.copy(value);
+        this.hitbox.position.copy(value);
     }
 }

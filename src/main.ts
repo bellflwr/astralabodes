@@ -73,14 +73,17 @@ scene.add(ambient_light);
 let mod_group: Object3D = new Object3D();
 scene.add(mod_group);
 let modules: Modules = new Modules(mod_group);
+scene.add(modules.hitboxes);
 
 load_kinds(() => {
     let m = new Module(kinds.get("Module 1"));
+    m.position = new THREE.Vector3(0, 0, 0);
     modules.add_module(m);
     console.log(m.object.rotation);
     m.primary_dir = Side.FRONT;
     m.secondary_dir = Side.LEFT;
     console.log(m.object.rotation);
+
 });
 
 renderer.domElement.addEventListener("pointerdown", (event) => {
@@ -107,10 +110,9 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
         if (x >= -gridSize/2 && x < gridSize/2 && z >= -gridSize/2 && z < gridSize/2) {
             const alreadyPlaced = placedCubes.some(c => c.position.x === x * gridSpacing && c.position.z === z * gridSpacing);
             if (!alreadyPlaced) {
-                const newCube = new THREE.Mesh(geometry, material.clone());
-                newCube.position.set(x * gridSpacing, 0.5, z * gridSpacing);
-                scene.add(newCube);
-                placedCubes.push(newCube);
+                let module1 = new Module(kinds.get("Module 1"));
+                module1.position = new THREE.Vector3(x * gridSpacing, 0, z * gridSpacing);
+                modules.add_module(module1);
                 // Turn off building mode
                 building = false;
                 if (module1Btn) module1Btn.classList.remove("active");
