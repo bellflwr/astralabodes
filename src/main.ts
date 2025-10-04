@@ -1,7 +1,7 @@
 import "./style.css";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { kinds } from "./module_kinds";
+import { kinds, load_kinds } from "./module_kinds";
 import { Modules } from "./data/modules";
 import { Object3D } from "three";
 import { Module } from "./data/module";
@@ -55,6 +55,15 @@ let mod_group: Object3D = new Object3D();
 scene.add(mod_group);
 let modules: Modules = new Modules(mod_group);
 
+load_kinds(() => {
+    let m = new Module(kinds[0]);
+    modules.add_module(m);
+    console.log(m.object.rotation);
+    m.primary_dir = Side.FRONT;
+    m.secondary_dir = Side.LEFT;
+    console.log(m.object.rotation);
+});
+
 renderer.domElement.addEventListener("pointerdown", (event) => {
     const mouse = new THREE.Vector2(
         (event.clientX / window.innerWidth) * 2 - 1,
@@ -67,14 +76,6 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
         transitionTarget.copy(cube.position);
         transitioning = true;
     }
-
-    let m = new Module(kinds[0])
-    modules.add_module(m);
-    console.log(m.object.rotation);
-    m.primary_dir = Side.FRONT;
-    m.secondary_dir = Side.LEFT;
-    console.log(m.object.rotation);
-
 });
 camera.position.z = 5;
 
