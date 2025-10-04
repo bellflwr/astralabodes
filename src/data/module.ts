@@ -1,15 +1,54 @@
-import { Vector3 } from "three";
+import { Object3D, Vector3 } from "three";
 import type { ModuleKind } from "./module_kind";
-import { Side } from "./sides";
-
+import { direction_vectors, get_euler_from_directions, Side } from "./sides";
 
 export class Module {
-    position: Vector3 = new Vector3(0, 0, 0);
-    orientation: Side = Side.FRONT;
-    rotation: number = 0;
+    primary_dir_: Side = Side.FRONT;
+    secondary_dir_: Side = Side.TOP;
+    object: Object3D;
     kind: ModuleKind;
 
     constructor(kind: ModuleKind) {
         this.kind = kind;
+
+        this.object = this.kind.model.clone();
+    }
+
+    get primary_dir(): Side {
+        return this.primary_dir_;
+    }
+
+    set primary_dir(value: Side) {
+        this.primary_dir_ = value;
+
+        this.object.setRotationFromEuler(
+            get_euler_from_directions(
+                direction_vectors[this.primary_dir_],
+                direction_vectors[this.secondary_dir_]
+            )
+        );
+    }
+
+    get secondary_dir(): Side {
+        return this.secondary_dir_;
+    }
+
+    set secondary_dir(value: Side) {
+        this.secondary_dir_ = value;
+
+        this.object.setRotationFromEuler(
+            get_euler_from_directions(
+                direction_vectors[this.primary_dir_],
+                direction_vectors[this.secondary_dir_]
+            )
+        );
+    }
+
+    get position(): Vector3 {
+        return this.object.position;
+    }
+
+    set position(value: Vector3) {
+        this.object.position.copy(value);
     }
 }

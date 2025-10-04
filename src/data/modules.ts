@@ -9,4 +9,11 @@ export class Modules {
     constructor(group: Object3D) {
         this.group = group;
     }
+
+    add_module(mod: Module) {
+        this.modules.push(mod);
+        this.group.add(mod.object);
+
+        
+    }
 }
