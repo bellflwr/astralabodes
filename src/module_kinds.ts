@@ -8,7 +8,14 @@ const model_path = "/models/";
 const kind_data: Array<any> = [
     ["Debug", "Debug_Module.glb", [false, false, false, false, false, false], 0],
     ["Module 1", "Module-1.glb", [false, false, false, false, false, false], 100],
-    ["Module 2", "Module-2.glb", [false, false, false, false, false, false], 100]
+    ["Module 2", "Module-2.glb", [false, false, false, false, false, false], 100],
+    ["Module 3", "Model-3-Centre.glb", [false, false, false, false, false, false], 100],
+    ["Module 4", "Module-3-Centre-1.glb", [false, false, false, false, false, false], 100],
+    ["Module 5", "Module-3-Centre-2.glb", [false, false, false, false, false, false], 100],
+    ["Module 6", "Module-3-Centre-3.glb", [false, false, false, false, false, false], 100],
+    ["Module 7", "Module-3-Centre-4.glb", [false, false, false, false, false, false], 100],
+    ["Module 8", "Module-3-Edgepiece.glb", [false, false, false, false, false, false], 100],
+
 ];
 
 export let kinds: Map<string, ModuleKind> = new Map();
