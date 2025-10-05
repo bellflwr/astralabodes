@@ -14,25 +14,72 @@
                 margin: 0;
             }
         </style>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap"
+            rel="stylesheet"
+        />
     </head>
-    <body>  
-            <div id="problems-box">Problems: <span id="problems-count">0</span></div>
-            <div id="cost-box">Cost: $<span id="cost-value">0</span></div>
-            <div id="modules-bar">
-                <button class="module-btn">Module 1</button>
-                <button class="module-btn">Module 2</button>
-                <button class="module-btn">Module 3</button>
-                <button id="evaluate-btn">Evaluate</button>
+    <body>
+        <div id="problems-box" class="open">
+            <h1>Problems: <span id="problems-count">0</span></h1>
+
+            <div class="content">
+                <ul>
+                    <li>
+                        Lorem ipsum dolor sit amet consectetur adipisicing elit.
+                        Debitis, exercitationem dignissimos. Quibusdam aperiam
+                        similique doloribus repellat deserunt voluptas aliquam
+                        eius non asperiores laboriosam eveniet facere neque
+                        dolorem, ut minima architecto?
+                    </li>
+                    <li>
+                        Nulla enim magnam quis consectetur animi natus
+                        assumenda, repellat dolorem facere unde officiis sequi
+                        dolorum! Rem est quasi minus perspiciatis quo adipisci,
+                        modi porro similique ducimus omnis illum, totam harum.
+                    </li>
+                    <li>
+                        Vitae neque officiis sed similique magnam ducimus ea
+                        exercitationem deserunt. Nam facilis libero alias iure
+                        necessitatibus nulla veniam. Debitis, quibusdam unde!
+                        Maxime dignissimos dolores natus eius fuga possimus ad
+                        ratione.
+                    </li>
+                    <li>
+                        Itaque saepe ut maiores quo similique quasi consequuntur
+                        error officiis eveniet, laudantium explicabo commodi
+                        veniam laborum? Facere commodi velit odio accusantium
+                        qui, odit ullam non mollitia harum explicabo deleniti.
+                        Nostrum!
+                    </li>
+                    <li>
+                        Dicta ab ex nam ut ipsa, sequi omnis, repellat
+                        aspernatur placeat recusandae officia, eum aliquam saepe
+                        suscipit doloribus! Deserunt iste enim accusantium
+                        ducimus! Consectetur expedita hic in repellat ipsam
+                        eaque.
+                    </li>
+                </ul>
             </div>
-                <div id="crew-modal" class="modal-hidden">
-                    <div class="modal-content">
-                        <h2>Select Crew Size</h2>
-                        <div class="crew-options">
-                            <button class="crew-btn" data-size="4">4</button>
-                            <button class="crew-btn" data-size="6">6</button>
-                        </div>
-                    </div>
+        </div>
+        <div id="cost-box">Cost: $<span id="cost-value">0</span></div>
+        <div id="modules-bar">
+            <button class="module-btn">Module 1</button>
+            <button class="module-btn">Module 2</button>
+            <button class="module-btn">Module 3</button>
+            <button id="evaluate-btn">Evaluate</button>
+        </div>
+        <div id="crew-modal" class="modal-hidden">
+            <div class="modal-content">
+                <h2>Select Crew Size</h2>
+                <div class="crew-options">
+                    <button class="crew-btn" data-size="4">4</button>
+                    <button class="crew-btn" data-size="6">6</button>
                 </div>
-            <script type="module" src="/src/main.ts"></script>
+            </div>
+        </div>
+        <script type="module" src="/src/main.ts"></script>
     </body>
 </html>

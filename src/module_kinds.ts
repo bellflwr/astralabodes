@@ -6,8 +6,8 @@ const gltfLoader = new GLTFLoader();
 
 const model_path = "/models/";
 const kind_data: Array<any> = [
-    ["Debug", "Debug_Module.glb", [false, false, false, false, false, false]],
-    ["Module 1", "Module-1.glb", [false, false, false, false, false, false]],
+    ["Debug", "Debug_Module.glb", [false, false, false, false, false, false], 0],
+    ["Module 1", "Module-1.glb", [false, false, false, false, false, false], 100],
 ];
 
 export let kinds: Map<string, ModuleKind> = new Map();
@@ -16,7 +16,7 @@ export function load_kinds(callback: () => void) {
 
     for (const el of kind_data) {
         gltfLoader.load(model_path + el[1], (gltf) => {
-            kinds.set(el[0], new ModuleKind(el[0], gltf.scene, el[2]));
+            kinds.set(el[0], new ModuleKind(el[0], gltf.scene, el[2], el[3]));
             i--;
             if (i == 0) {
                 callback();

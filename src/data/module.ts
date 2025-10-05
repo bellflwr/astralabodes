@@ -1,6 +1,7 @@
 import { BoxGeometry, MeshBasicMaterial, Mesh, Object3D, Vector3 } from "three";
 import type { ModuleKind } from "./module_kind";
 import { direction_vectors, get_euler_from_directions, Side } from "./sides";
+import { SpecType } from "./specializations";
 
 export class Module {
     primary_dir_: Side = Side.FRONT;
@@ -8,6 +9,8 @@ export class Module {
     object: Object3D;
     kind: ModuleKind;
     hitbox: Object3D;
+
+    spec: SpecType = SpecType.Unassigned;
 
     constructor(kind: ModuleKind) {
         this.kind = kind;
