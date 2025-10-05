@@ -105,25 +105,35 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
             let pos = new THREE.Vector3(obj.position.x + normal.x * 12, obj.position.y + normal.y * 12, obj.position.z + normal.z * 12);
             let module = new Module(kinds.get("Module " + building));
             module.position = pos;
-                    if (normal.x === 1) {
-                        module.primary_dir = Side.LEFT;
-                        module.secondary_dir = Side.FRONT;
-                    } else if (normal.x === -1) {
-                        module.primary_dir = Side.RIGHT;
-                        module.secondary_dir = Side.FRONT;
-                    } else if (normal.y === 1) {
-                        module.primary_dir = Side.BOTTOM;
-                        module.secondary_dir = Side.FRONT;
-                    } else if (normal.y === -1) {
-                        module.primary_dir = Side.TOP;
-                        module.secondary_dir = Side.FRONT;
-                    } else if (normal.z === 1) {
-                        module.primary_dir = Side.BACK;
-                        module.secondary_dir = Side.TOP;
-                    } else if (normal.z === -1) {
-                        module.primary_dir = Side.FRONT;
-                        module.secondary_dir = Side.TOP;
-                    }
+            // Default directions
+            if (normal.x === 1) {
+                module.primary_dir = Side.LEFT;
+                module.secondary_dir = Side.FRONT;
+            } else if (normal.x === -1) {
+                module.primary_dir = Side.RIGHT;
+                module.secondary_dir = Side.FRONT;
+            } else if (normal.y === 1) {
+                module.primary_dir = Side.BOTTOM;
+                module.secondary_dir = Side.FRONT;
+            } else if (normal.y === -1) {
+                module.primary_dir = Side.TOP;
+                module.secondary_dir = Side.FRONT;
+            } else if (normal.z === 1) {
+                module.primary_dir = Side.BACK;
+                module.secondary_dir = Side.TOP;
+            } else if (normal.z === -1) {
+                module.primary_dir = Side.FRONT;
+                module.secondary_dir = Side.TOP;
+            }
+
+            // Invert module 2 if placed on another module 2
+            if (building === 2 && obj.parent && obj.parent.parent) {
+                const targetModule = modules.modules.find(m => m.hitbox === obj);
+                if (targetModule && targetModule.kind.name === "Module 2") {
+                    // Mirror along X axis for smooth blend
+                    module.object.scale.x *= -1;
+                }
+            }
             // Remove preview and restore original materials
             if (previewModule) {
                 scene.remove(previewModule.object);
