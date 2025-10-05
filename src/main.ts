@@ -26,6 +26,8 @@ renderer.physicallyCorrectLights = true;
 renderer.setAnimationLoop(animate);
 document.body.appendChild(renderer.domElement);
 
+const clock = new THREE.Clock();
+
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.target.set(0, 0, 0);
@@ -64,7 +66,8 @@ modelLoader.load("models/Earth.glb", (gltf: GLTF) => {
 });
 modelLoader.load("models/Moon.glb", (gltf: GLTF) => {
   moon = gltf.scene;
-  moon.position.set(600, -300, 700);
+  moon.position.set(-1700, -650, -750);
+  // moon.position.set(600, -300, 700);
   moon.scale.set(2, 2, 2);
   scene.add(moon);
 });
@@ -444,8 +447,14 @@ module7Btn?.addEventListener("click", () => setBuilding(7));
 module8Btn?.addEventListener("click", () => setBuilding(8));
 
 function animate() {
+  const deltaTime = clock.getDelta();
   if (earth && earth.rotation) {
     earth.rotation.y += 0.0005;
+  }
+
+  if (moon && moon.position && earth && earth.position){
+    moon.position.x = Math.cos(clock.getElapsedTime() * -0.01) * 2000 + earth.position.x;
+    moon.position.z = Math.sin(clock.getElapsedTime() * -0.01) * 2000 + earth.position.z;
   }
   controls.update();
   renderer.render(scene, camera);
