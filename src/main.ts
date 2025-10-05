@@ -6,7 +6,7 @@ import { kinds, load_kinds } from "./module_kinds";
 import { Modules } from "./data/modules";
 import { Object3D } from "three";
 import { Module } from "./data/module";
-import { Side, direction_vectors } from "./data/sides";
+import { Side, get_side_from_vector } from "./data/sides";
 import { SpecType } from "./data/specializations";
 
 const scene = new THREE.Scene();
@@ -472,24 +472,11 @@ renderer.domElement.addEventListener("mousemove", (event) => {
                 const preview = new Module(kind);
                 preview.position = pos.clone();
 
-                if (normal.x === 1) {
-                    preview.primary_dir = Side.LEFT;
-                    preview.secondary_dir = Side.FRONT;
-                } else if (normal.x === -1) {
-                    preview.primary_dir = Side.RIGHT;
-                    preview.secondary_dir = Side.FRONT;
-                } else if (normal.y === 1) {
-                    preview.primary_dir = Side.BOTTOM;
-                    preview.secondary_dir = Side.FRONT;
-                } else if (normal.y === -1) {
-                    preview.primary_dir = Side.TOP;
-                    preview.secondary_dir = Side.FRONT;
-                } else if (normal.z === 1) {
-                    preview.primary_dir = Side.BACK;
-                    preview.secondary_dir = Side.TOP;
-                } else if (normal.z === -1) {
-                    preview.primary_dir = Side.FRONT;
-                    preview.secondary_dir = Side.TOP;
+                preview.primary_dir = get_side_from_vector(normal.negate());
+                preview.secondary_dir = Side.FRONT;
+
+                if (preview.primary_dir == Side.BACK || preview.primary_dir == Side.FRONT) {
+                  preview.secondary_dir = Side.TOP;
                 }
 
                 const targetMod = obj.module_data as Module | undefined;
