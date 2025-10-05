@@ -133,6 +133,12 @@ function update_problem_list() {
     }
   }
 
+  if (problemCount === 0) {
+    problems_box.classList.add("no-problems");
+  } else {
+    problems_box.classList.remove("no-problems");
+  }
+
   problems_count.innerHTML = problemCount.toFixed(0);
 }
 
