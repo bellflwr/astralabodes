@@ -22,6 +22,8 @@ let previewModule: Module | null = null;
 let previewModules: THREE.Object3D[] = [];
 let previewPosition: THREE.Vector3 | null = null;
 let previewNormal: THREE.Vector3 | null = null;
+let trashMode = false;
+let trashPreview: THREE.Object3D | null = null;
 
 const loader = new THREE.TextureLoader();
 const texture = loader.load(
@@ -92,6 +94,23 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
 
+        if (trashMode) {
+            const intersects = raycaster.intersectObject(modules.hitboxes, true);
+            if (intersects.length && intersects[0].object) {
+                let obj = intersects[0].object;
+                // Remove the module and its hitbox
+                for (let i = 0; i < modules.modules.length; i++) {
+                    if (modules.modules[i].hitbox === obj || modules.modules[i].object === obj) {
+                        scene.remove(modules.modules[i].object);
+                        modules.hitboxes.remove(modules.modules[i].hitbox);
+                        modules.modules.splice(i, 1);
+                        break;
+                    }
+                }
+            }
+            trashMode = false;
+            return;
+        }
     if (!building) {
         const intersects = raycaster.intersectObject(cube);
         if (intersects.length > 0) {
@@ -351,6 +370,23 @@ function animate() {
 }
 
 // UI Interactivity for Evaluate button, Crew Modal, and Module 1
+const trashBtn = document.getElementById("trash-btn") as HTMLButtonElement;
+
+if (trashBtn) {
+    trashBtn.addEventListener("click", () => {
+        trashMode = !trashMode;
+        building = 0;
+        // Remove any previous preview
+        if (previewModule) {
+            scene.remove(previewModule.object);
+            previewModule = null;
+        }
+        if (previewModules.length > 0) {
+            previewModules.forEach(obj => scene.remove(obj));
+            previewModules = [];
+        }
+    });
+}
 const evaluateBtn = document.getElementById("evaluate-btn") as HTMLButtonElement;
 const crewModal = document.getElementById("crew-modal") as HTMLDivElement;
 const crewBtns = document.querySelectorAll(".crew-btn");
