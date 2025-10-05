@@ -18,6 +18,8 @@ const camera = new THREE.PerspectiveCamera(
 camera.position.set(20, 20, 0);
 
 let building = 0;
+let previewModule: Module | null = null;
+let previewPosition: THREE.Vector3 | null = null;
 
 const loader = new THREE.TextureLoader();
 const texture = loader.load(
@@ -95,17 +97,49 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
             transitioning = true;
         }
     } else {
-
         const intersects = raycaster.intersectObject(modules.hitboxes);
-        if(intersects.length){
+        if (intersects.length && previewModule) {
             let obj = intersects[0].object;
             let normal = intersects[0].face.normal;
-            
+            let pos = new THREE.Vector3(obj.position.x + normal.x * 12, obj.position.y + normal.y * 12, obj.position.z + normal.z * 12);
             let module = new Module(kinds.get("Module " + building));
-            module.position = new THREE.Vector3(obj.position.x + normal.x * 12, obj.position.y + normal.y * 12, obj.position.z + normal.z * 12);
-            modules.add_module(module)
+            module.position = pos;
+            // Remove preview and restore original materials
+            if (previewModule) {
+                // Restore original materials if needed
+                previewModule.object.traverse(child => {
+                    if ((child as THREE.Mesh).isMesh) {
+                        const mesh = child as THREE.Mesh;
+                        if (mesh.material && mesh.userData.originalMaterial) {
+                            mesh.material = mesh.userData.originalMaterial;
+                        }
+                    }
+                });
+                scene.remove(previewModule.object);
+                previewModule = null;
+            }
+            modules.add_module(module);
             building = 0;
         }
+    }
+});
+// Mouse move handler for preview
+renderer.domElement.addEventListener("mousemove", (event) => {
+    if (!building) return;
+    const mouse = new THREE.Vector2(
+        (event.clientX / window.innerWidth) * 2 - 1,
+        -(event.clientY / window.innerHeight) * 2 + 1
+    );
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObject(modules.hitboxes);
+    if (intersects.length) {
+        let obj = intersects[0].object;
+        let normal = intersects[0].face.normal;
+        let pos = new THREE.Vector3(obj.position.x + normal.x * 12, obj.position.y + normal.y * 12, obj.position.z + normal.z * 12);
+        previewPosition = pos;
+    } else {
+        previewPosition = null;
     }
 });
 camera.position.z = 5;
@@ -123,8 +157,35 @@ function animate() {
         }
     }
 
-    controls.update();
+    // Preview module logic
+    if (building && previewPosition) {
+        if (!previewModule) {
+            previewModule = new Module(kinds.get("Module " + building));
+            previewModule.object.traverse(child => {
+                if ((child as THREE.Mesh).isMesh) {
+                    const mesh = child as THREE.Mesh;
+                    const makeGreen = (mat: THREE.Material) => {
+                        if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshBasicMaterial) {
+                            return new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5 });
+                        }
+                        return mat;
+                    };
+                    if (Array.isArray(mesh.material)) {
+                        mesh.material = mesh.material.map(makeGreen);
+                    } else {
+                        mesh.material = makeGreen(mesh.material);
+                    }
+                }
+            });
+            scene.add(previewModule.object);
+        }
+        previewModule.position = previewPosition.clone();
+    } else if (previewModule) {
+        scene.remove(previewModule.object);
+        previewModule = null;
+    }
 
+    controls.update();
     renderer.render(scene, camera);
 }
 
@@ -163,11 +224,21 @@ if (evaluateBtn && crewModal) {
 if (module1Btn) {
     module1Btn.addEventListener("click", () => {
         building = 1;
+        // Remove any previous preview
+        if (previewModule) {
+            scene.remove(previewModule.object);
+            previewModule = null;
+        }
     });
 }
 
 if (module2Btn) {
     module2Btn.addEventListener("click", () => {
         building = 2;
-    })
+        // Remove any previous preview
+        if (previewModule) {
+            scene.remove(previewModule.object);
+            previewModule = null;
+        }
+    });
 }
