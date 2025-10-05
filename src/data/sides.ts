@@ -58,3 +58,31 @@ export function get_euler_from_directions(u: Vector3, v: Vector3) {
 
     return euler; // returns Euler angles in radians
 }
+
+/* ============================
+   Placement + Trash Helpers
+============================ */
+export function faceFromNormalOnTarget(n: Vector3): Side {
+    if (Math.abs(n.x) > 0.9) return n.x > 0 ? Side.RIGHT : Side.LEFT;
+    if (Math.abs(n.y) > 0.9) return n.y > 0 ? Side.TOP : Side.BOTTOM;
+    if (Math.abs(n.z) > 0.9) return n.z > 0 ? Side.FRONT : Side.BACK;
+    return Side.FRONT;
+}
+
+// Determine side from delta between centers (world aligned grid, 12 units apart)
+export function sideFromDelta(delta: Vector3): Side | null {
+    const eps = 1e-3;
+    const ax = Math.abs(delta.x);
+    const ay = Math.abs(delta.y);
+    const az = Math.abs(delta.z);
+    if (ax > ay && ax > az && Math.abs(ax - 12) < eps) {
+        return delta.x > 0 ? Side.RIGHT : Side.LEFT;
+    }
+    if (ay > ax && ay > az && Math.abs(ay - 12) < eps) {
+        return delta.y > 0 ? Side.TOP : Side.BOTTOM;
+    }
+    if (az > ax && az > ay && Math.abs(az - 12) < eps) {
+        return delta.z > 0 ? Side.FRONT : Side.BACK;
+    }
+    return null;
+}

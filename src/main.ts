@@ -6,7 +6,7 @@ import { kinds, load_kinds } from "./module_kinds";
 import { Modules } from "./data/modules";
 import { Object3D } from "three";
 import { Module } from "./data/module";
-import { Side, get_side_from_vector } from "./data/sides";
+import { Side, faceFromNormalOnTarget, get_side_from_vector, sideFromDelta } from "./data/sides";
 import { SpecType } from "./data/specializations";
 import { point_light_color, point_light_intensity, ambient_light_color, ambient_light_intensity, transitionSpeed } from "./scene_settings";
 
@@ -18,16 +18,6 @@ const camera = new THREE.PerspectiveCamera(
     1000
 );
 camera.position.set(20, 20, 0);
-
-/* ============================
-   Placement + Trash Helpers
-============================ */
-const faceFromNormalOnTarget = (n: THREE.Vector3): Side => {
-  if (Math.abs(n.x) > 0.9) return n.x > 0 ? Side.RIGHT : Side.LEFT;
-  if (Math.abs(n.y) > 0.9) return n.y > 0 ? Side.TOP   : Side.BOTTOM;
-  if (Math.abs(n.z) > 0.9) return n.z > 0 ? Side.FRONT : Side.BACK;
-  return Side.FRONT;
-};
 
 const getModuleIndex = (mod?: Module): number => {
   if (!mod) return -1;
@@ -105,24 +95,6 @@ const tintModuleForTrash = (mod: Module, on: boolean) => {
       }
     }
   });
-};
-
-// Determine side from delta between centers (world aligned grid, 12 units apart)
-const sideFromDelta = (delta: THREE.Vector3): Side | null => {
-  const eps = 1e-3;
-  const ax = Math.abs(delta.x);
-  const ay = Math.abs(delta.y);
-  const az = Math.abs(delta.z);
-  if (ax > ay && ax > az && Math.abs(ax - 12) < eps) {
-    return delta.x > 0 ? Side.RIGHT : Side.LEFT;
-  }
-  if (ay > ax && ay > az && Math.abs(ay - 12) < eps) {
-    return delta.y > 0 ? Side.TOP : Side.BOTTOM;
-  }
-  if (az > ax && az > ay && Math.abs(az - 12) < eps) {
-    return delta.z > 0 ? Side.FRONT : Side.BACK;
-  }
-  return null;
 };
 
 // For a given module, list neighbors exactly 12 units away along one axis, honoring connectable_sides
