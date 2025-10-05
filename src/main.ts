@@ -106,7 +106,7 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
                     // (Assume each preview object is a Module.object)
                     // We'll reconstruct the Module from the preview object
                     // by copying its position, orientation, and mirroring
-                    let kind = building === 1 ? kinds.get("Module 1") : kinds.get("Module 2");
+                    let kind = kinds.get("Module " + building);
                     if (!kind) return;
                     let placedModule = new Module(kind);
                     placedModule.position = obj.position;
@@ -157,10 +157,10 @@ renderer.domElement.addEventListener("mousemove", (event) => {
             previewModules.forEach(obj => scene.remove(obj));
             previewModules = [];
         }
-        if (building === 1) {
-            const kind1 = kinds.get("Module 1");
-            if (kind1) {
-                const preview = new Module(kind1);
+        if (building >= 1) {
+            const kind = kinds.get(`Module ${building}`);
+            if (kind) {
+                const preview = new Module(kind);
                 preview.position = pos.clone();
                 // Set orientation based on normal
                 if (normal.x === 1) {
@@ -200,78 +200,36 @@ renderer.domElement.addEventListener("mousemove", (event) => {
                 });
                 scene.add(preview.object);
                 previewModules.push(preview.object);
-            }
-        } else if (building === 2) {
-            const kind2 = kinds.get("Module 2");
-            if (kind2) {
-                // Normal preview
-                const normalPreview = new Module(kind2);
-                normalPreview.position = pos.clone();
-                if (normal.x === 1) {
-                    normalPreview.primary_dir = Side.LEFT;
-                    normalPreview.secondary_dir = Side.FRONT;
-                } else if (normal.x === -1) {
-                    normalPreview.primary_dir = Side.RIGHT;
-                    normalPreview.secondary_dir = Side.FRONT;
-                } else if (normal.y === 1) {
-                    normalPreview.primary_dir = Side.BOTTOM;
-                    normalPreview.secondary_dir = Side.FRONT;
-                } else if (normal.y === -1) {
-                    normalPreview.primary_dir = Side.TOP;
-                    normalPreview.secondary_dir = Side.FRONT;
-                } else if (normal.z === 1) {
-                    normalPreview.primary_dir = Side.BACK;
-                    normalPreview.secondary_dir = Side.TOP;
-                } else if (normal.z === -1) {
-                    normalPreview.primary_dir = Side.FRONT;
-                    normalPreview.secondary_dir = Side.TOP;
+                // For module 2, also show inverted preview
+                if (building === 2) {
+                    const invertedPreview = new Module(kind);
+                    invertedPreview.position = new THREE.Vector3(
+                        pos.x + normal.x * 12,
+                        pos.y + normal.y * 12,
+                        pos.z + normal.z * 12
+                    );
+                    invertedPreview.primary_dir = preview.primary_dir;
+                    invertedPreview.secondary_dir = preview.secondary_dir;
+                    invertedPreview.object.scale.x *= -1;
+                    invertedPreview.object.traverse(child => {
+                        if ((child as THREE.Mesh).isMesh) {
+                            const mesh = child as THREE.Mesh;
+                            const makeGreen = (mat: THREE.Material) => {
+                                if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshBasicMaterial) {
+                                    return new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5 });
+                                }
+                                return mat;
+                            };
+                            if (Array.isArray(mesh.material)) {
+                                mesh.material = mesh.material.map(makeGreen);
+                            } else {
+                                mesh.material = makeGreen(mesh.material);
+                            }
+                        }
+                    });
+                    scene.add(invertedPreview.object);
+                    previewModules.push(invertedPreview.object);
                 }
-                normalPreview.object.traverse(child => {
-                    if ((child as THREE.Mesh).isMesh) {
-                        const mesh = child as THREE.Mesh;
-                        const makeGreen = (mat: THREE.Material) => {
-                            if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshBasicMaterial) {
-                                return new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5 });
-                            }
-                            return mat;
-                        };
-                        if (Array.isArray(mesh.material)) {
-                            mesh.material = mesh.material.map(makeGreen);
-                        } else {
-                            mesh.material = makeGreen(mesh.material);
-                        }
-                    }
-                });
-                scene.add(normalPreview.object);
-                previewModules.push(normalPreview.object);
-                // Inverted preview, 1 unit along normal
-                const invertedPreview = new Module(kind2);
-                invertedPreview.position = new THREE.Vector3(
-                    pos.x + normal.x * 12,
-                    pos.y + normal.y * 12,
-                    pos.z + normal.z * 12
-                );
-                invertedPreview.primary_dir = normalPreview.primary_dir;
-                invertedPreview.secondary_dir = normalPreview.secondary_dir;
-                invertedPreview.object.scale.x *= -1;
-                invertedPreview.object.traverse(child => {
-                    if ((child as THREE.Mesh).isMesh) {
-                        const mesh = child as THREE.Mesh;
-                        const makeGreen = (mat: THREE.Material) => {
-                            if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshBasicMaterial) {
-                                return new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5 });
-                            }
-                            return mat;
-                        };
-                        if (Array.isArray(mesh.material)) {
-                            mesh.material = mesh.material.map(makeGreen);
-                        } else {
-                            mesh.material = makeGreen(mesh.material);
-                        }
-                    }
-                });
-                scene.add(invertedPreview.object);
-                previewModules.push(invertedPreview.object);
             }
         }
     } else {
@@ -398,6 +356,12 @@ const crewModal = document.getElementById("crew-modal") as HTMLDivElement;
 const crewBtns = document.querySelectorAll(".crew-btn");
 const module1Btn = document.querySelectorAll(".module-btn")[0] as HTMLButtonElement;
 const module2Btn = document.querySelectorAll(".module-btn")[1] as HTMLButtonElement;
+const module3Btn = document.querySelectorAll(".module-btn")[2] as HTMLButtonElement;
+const module4Btn = document.querySelectorAll(".module-btn")[3] as HTMLButtonElement;
+const module5Btn = document.querySelectorAll(".module-btn")[4] as HTMLButtonElement;
+const module6Btn = document.querySelectorAll(".module-btn")[5] as HTMLButtonElement;
+const module7Btn = document.querySelectorAll(".module-btn")[6] as HTMLButtonElement;
+const module8Btn = document.querySelectorAll(".module-btn")[7] as HTMLButtonElement;
 
 // Ensure modal is hidden on page load
 if (crewModal) {
@@ -438,6 +402,73 @@ if (module1Btn) {
 if (module2Btn) {
     module2Btn.addEventListener("click", () => {
         building = 2;
+        // Remove any previous preview
+        if (previewModule) {
+            scene.remove(previewModule.object);
+            previewModule = null;
+        }
+    });
+}
+
+if (module3Btn) {
+    module3Btn.addEventListener("click", () => {
+        building = 3;
+        console.log("3");
+        // Remove any previous preview
+        if (previewModule) {
+            scene.remove(previewModule.object);
+            previewModule = null;
+        }
+    });
+}
+
+if (module4Btn) {
+    module4Btn.addEventListener("click", () => {
+        building = 4;
+        // Remove any previous preview
+        if (previewModule) {
+            scene.remove(previewModule.object);
+            previewModule = null;
+        }
+    });
+}
+
+if (module5Btn) {
+    module5Btn.addEventListener("click", () => {
+        building = 5;
+        // Remove any previous preview
+        if (previewModule) {
+            scene.remove(previewModule.object);
+            previewModule = null;
+        }
+    });
+}
+
+if (module6Btn) {
+    module6Btn.addEventListener("click", () => {
+        building = 6;
+        // Remove any previous preview
+        if (previewModule) {
+            scene.remove(previewModule.object);
+            previewModule = null;
+        }
+    });
+}
+
+if (module7Btn) {
+    module7Btn.addEventListener("click", () => {
+        building = 7;
+        // Remove any previous preview
+        if (previewModule) {
+            scene.remove(previewModule.object);
+            previewModule = null;
+        }
+    });
+}
+
+if (module8Btn) {
+    module8Btn.addEventListener("click", () => {
+        building = 8;
         // Remove any previous preview
         if (previewModule) {
             scene.remove(previewModule.object);
