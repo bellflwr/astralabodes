@@ -33,4 +33,13 @@ export class Modules {
 
         console.log(this.specs);
     }
+
+    trash(mod: Module){
+        this.group.remove(mod.object);
+        this.hitboxes.remove(mod.hitbox);
+        const index = this.modules.indexOf(mod);
+        if (index !== -1) {
+            this.modules.splice(index, 1);
+        }
+    }
 }

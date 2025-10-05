@@ -125,18 +125,13 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
     raycaster.setFromCamera(mouse, camera);
 
         if (trashMode) {
-            const intersects = raycaster.intersectObject(modules.hitboxes, true);
+            console.log("Trash on");
+            const intersects = raycaster.intersectObjects(modules.hitboxes.children, true);
             if (intersects.length && intersects[0].object) {
+                console.log("Trash hit");
                 let obj = intersects[0].object;
-                // Remove the module and its hitbox
-                for (let i = 0; i < modules.modules.length; i++) {
-                    if (modules.modules[i].hitbox === obj || modules.modules[i].object === obj) {
-                        scene.remove(modules.modules[i].object);
-                        modules.hitboxes.remove(modules.modules[i].hitbox);
-                        modules.modules.splice(i, 1);
-                        break;
-                    }
-                }
+                let mod = obj.module_data
+                modules.trash(mod);
             }
             trashMode = false;
             return;
@@ -148,7 +143,7 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
             transitioning = true;
             selectedModule = intersects[0].object.module_data;
 
-            moduleModal.classList.remove("modal-hidden");
+            // moduleModal.classList.remove("modal-hidden");
             specButtons[selectedModule.spec].checked = true;
         }
     } else {
@@ -308,6 +303,8 @@ function animate() {
         }
     }
 
+    console.log(trashMode);
+
     // Preview module logic
     if (building && previewPosition) {
         // Remove previous preview
@@ -405,22 +402,6 @@ function animate() {
 
 // UI Interactivity for Evaluate button, Crew Modal, and Module 1
 const trashBtn = document.getElementById("trash-btn") as HTMLButtonElement;
-
-if (trashBtn) {
-    trashBtn.addEventListener("click", () => {
-        trashMode = !trashMode;
-        building = 0;
-        // Remove any previous preview
-        if (previewModule) {
-            scene.remove(previewModule.object);
-            previewModule = null;
-        }
-        if (previewModules.length > 0) {
-            previewModules.forEach(obj => scene.remove(obj));
-            previewModules = [];
-        }
-    });
-}
 const evaluateBtn = document.getElementById("evaluate-btn") as HTMLButtonElement;
 const crewModal = document.getElementById("crew-modal") as HTMLDivElement;
 const crewBtns = document.querySelectorAll(".crew-btn");
@@ -456,6 +437,12 @@ if (evaluateBtn && crewModal) {
             crewModal.classList.add("modal-hidden");
         }
     });
+}
+
+if(trashBtn){
+    trashBtn.addEventListener("click", () => {
+        trashMode = !trashMode;
+})
 }
 
 if (module1Btn) {
