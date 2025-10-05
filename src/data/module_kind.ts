@@ -1,4 +1,5 @@
 import type { Object3D } from "three";
+import type { Module } from "./module";
 
 export class ModuleKind {
     name: string;
@@ -24,4 +25,10 @@ export class ModuleKind {
         this.model = model;
         this.work_area = work_area;
     }
+}
+
+export function getModuleIndex(mod?: Module): number {
+    if (!mod) return -1;
+    const m = /(\d+)/.exec(mod.kind.name ?? "");
+    return m ? parseInt(m[1], 10) : -1;
 }
