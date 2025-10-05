@@ -15,8 +15,9 @@ const camera = new THREE.PerspectiveCamera(
     0.1,
     1000
 );
+camera.position.set(20, 20, 0);
 
-let building = false;
+let building = 0;
 
 const loader = new THREE.TextureLoader();
 const texture = loader.load(
@@ -100,10 +101,10 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
             let obj = intersects[0].object;
             let normal = intersects[0].face.normal;
             
-            let module = new Module(kinds.get("Module 1"));
+            let module = new Module(kinds.get("Module " + building));
             module.position = new THREE.Vector3(obj.position.x + normal.x * 12, obj.position.y + normal.y * 12, obj.position.z + normal.z * 12);
             modules.add_module(module)
-            building = false;
+            building = 0;
         }
     }
 });
@@ -131,7 +132,8 @@ function animate() {
 const evaluateBtn = document.getElementById("evaluate-btn") as HTMLButtonElement;
 const crewModal = document.getElementById("crew-modal") as HTMLDivElement;
 const crewBtns = document.querySelectorAll(".crew-btn");
-const module1Btn = document.querySelector(".module-btn") as HTMLButtonElement;
+const module1Btn = document.querySelectorAll(".module-btn")[0] as HTMLButtonElement;
+const module2Btn = document.querySelectorAll(".module-btn")[1] as HTMLButtonElement;
 
 // Ensure modal is hidden on page load
 if (crewModal) {
@@ -158,10 +160,14 @@ if (evaluateBtn && crewModal) {
     });
 }
 
-// Module 1 button toggles building mode
 if (module1Btn) {
     module1Btn.addEventListener("click", () => {
-        building = !building;
-        module1Btn.classList.toggle("active", building);
+        building = 1;
     });
+}
+
+if (module2Btn) {
+    module2Btn.addEventListener("click", () => {
+        building = 2;
+    })
 }
