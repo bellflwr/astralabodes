@@ -445,3 +445,9 @@ if (module2Btn) {
         }
     });
 }
+
+let problems_box: HTMLElement = document.getElementById("problems-box");
+
+problems_box.addEventListener("click", (ev) => {
+    problems_box.classList.toggle("open");
+})
