@@ -7,6 +7,7 @@ import { Modules } from "./data/modules";
 import { Object3D } from "three";
 import { Module } from "./data/module";
 import { Side, direction_vectors } from "./data/sides";
+import { SpecType } from "./data/specializations";
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
@@ -22,6 +23,8 @@ let previewModule: Module | null = null;
 let previewModules: THREE.Object3D[] = [];
 let previewPosition: THREE.Vector3 | null = null;
 let previewNormal: THREE.Vector3 | null = null;
+
+let selectedModule: Module | null = null;
 
 const loader = new THREE.TextureLoader();
 const texture = loader.load(
@@ -84,6 +87,33 @@ load_kinds(() => {
 
 });
 
+const moduleModal = document.getElementById("module-modal") as HTMLElement;
+
+moduleModal.addEventListener("click", (e) => {
+    if (e.target === moduleModal) {
+        moduleModal.classList.add("modal-hidden");
+    }
+});
+
+const specSelector = document.getElementById("spec-selector") as HTMLElement;
+
+for(const [k, v] of Object.entries(SpecType)) {
+    specSelector.innerHTML += "<div>";
+    specSelector.innerHTML += `<input type="radio" name="spectype" id="${k}-radio" value="${v}" />`
+    specSelector.innerHTML += `<label for="${k}-radio">${k}</label>`
+    specSelector.innerHTML += "</div>";
+}
+
+const specButtons = document.querySelectorAll('input[name="spectype"]');
+
+for (let rb of specButtons) {
+    rb.addEventListener("change", (e) => {
+        if(e.target.checked) {
+            selectedModule.spec = e.target.value;
+        }
+    });
+}
+
 renderer.domElement.addEventListener("pointerdown", (event) => {
     const mouse = new THREE.Vector2(
         (event.clientX / window.innerWidth) * 2 - 1,
@@ -93,10 +123,14 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
     raycaster.setFromCamera(mouse, camera);
 
     if (!building) {
-        const intersects = raycaster.intersectObject(cube);
+        const intersects = raycaster.intersectObjects(modules.hitboxes.children);
         if (intersects.length > 0) {
-            transitionTarget.copy(cube.position);
+            transitionTarget.copy(intersects[0].object.position);
             transitioning = true;
+            selectedModule = intersects[0].object.module_data;
+
+            moduleModal.classList.remove("modal-hidden");
+            specButtons[selectedModule.spec].checked = true;
         }
     } else {
             // Place all preview modules in the scene as real modules

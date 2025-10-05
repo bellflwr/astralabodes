@@ -20,6 +20,7 @@ export class Module {
         const geo = new BoxGeometry(12, 12, 12);
         const mat = new MeshBasicMaterial({ visible: false });
         this.hitbox = new Mesh(geo, mat);
+        this.hitbox.module_data = this;
     }
 
     get primary_dir(): Side {
