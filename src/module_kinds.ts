@@ -7,7 +7,7 @@ const gltfLoader = new GLTFLoader();
 const model_path = "/models/";
 const kind_data: Array<any> = [
     ["Debug", "Debug_Module.glb", [false, false, false, false, false, false], 0],
-    ["Module 1", "Module-1.glb", [false, false, false, false, true, true], 100],
+    ["Module 1", "Module-1.glb", [false, false, false, false, true, false], 100],
     ["Module 2", "Module-2.glb", [false, false, false, false, true, true], 100],
     ["Module 3", "Model-3-Centre.glb", [false, false, false, false, true, true], 100],
     ["Module 4", "Module-3-Centre-1.glb", [true, false, false, false, true, true], 100],
