@@ -18,6 +18,40 @@ const camera = new THREE.PerspectiveCamera(
 );
 camera.position.set(20, 20, 0);
 
+/* ============================
+   Placement Helpers (NEW)
+============================ */
+const faceFromNormalOnTarget = (n: THREE.Vector3): Side => {
+  // Map target cube face normal to Side enum
+  if (Math.abs(n.x) > 0.9) return n.x > 0 ? Side.RIGHT : Side.LEFT;
+  if (Math.abs(n.y) > 0.9) return n.y > 0 ? Side.TOP   : Side.BOTTOM;
+  if (Math.abs(n.z) > 0.9) return n.z > 0 ? Side.FRONT : Side.BACK;
+  return Side.FRONT; // fallback
+};
+
+const isPlacementAllowed = (targetMod: Module | undefined, faceNormal: THREE.Vector3): boolean => {
+  if (!targetMod) return false;
+  const side = faceFromNormalOnTarget(faceNormal.clone().round());
+  const arr = targetMod.kind.connectable_sides || [];
+  return !!arr[side];
+};
+
+const setPreviewTint = (obj: THREE.Object3D, ok: boolean) => {
+  obj.traverse((child: any) => {
+    if (child.isMesh) {
+      const mat = child.material && child.material.clone ? child.material.clone() : new THREE.MeshStandardMaterial();
+      if (mat.color) {
+        mat.color.set(ok ? 0x00ff00 : 0xff0000); // green / red
+        mat.transparent = true;
+        mat.opacity = 0.6;
+        if ('emissive' in mat) mat.emissive.set(ok ? 0x003300 : 0x330000);
+      }
+      child.material = mat;
+    }
+  });
+};
+/* ============================ */
+
 let building = 0;
 let previewModule: Module | null = null;
 let previewModules: THREE.Object3D[] = [];
@@ -37,7 +71,6 @@ const texture = loader.load(
         scene.background = texture;
     }
 )
-
 
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -86,7 +119,6 @@ load_kinds(() => {
     m.primary_dir = Side.FRONT;
     m.secondary_dir = Side.LEFT;
     console.log(m.object.rotation);
-
 });
 
 const moduleModal = document.getElementById("module-modal") as HTMLElement;
@@ -109,8 +141,8 @@ for(const [k, v] of Object.entries(SpecType)) {
 const specButtons = document.querySelectorAll('input[name="spectype"]');
 
 for (let rb of specButtons) {
-    rb.addEventListener("change", (e) => {
-        if(e.target.checked) {
+    rb.addEventListener("change", (e: any) => {
+        if(e.target.checked && selectedModule) {
             selectedModule.spec = e.target.value;
         }
     });
@@ -124,55 +156,67 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
 
-        if (trashMode) {
-            console.log("Trash on");
-            const intersects = raycaster.intersectObjects(modules.hitboxes.children, true);
-            if (intersects.length && intersects[0].object) {
-                console.log("Trash hit");
-                let obj = intersects[0].object;
-                let mod = obj.module_data
-                modules.trash(mod);
-            }
-            trashMode = false;
-            return;
+    if (trashMode) {
+        console.log("Trash on");
+        const intersects = raycaster.intersectObject(modules.hitboxes, true);
+        if (intersects.length && intersects[0].object) {
+            console.log("Trash hit");
+            let obj: any = intersects[0].object;
+            let mod = obj.module_data as Module;
+            if (mod) modules.trash(mod);
         }
-    if (!building) {
-        const intersects = raycaster.intersectObjects(modules.hitboxes.children);
-        if (intersects.length > 0) {
-            transitionTarget.copy(intersects[0].object.position);
-            transitioning = true;
-            selectedModule = intersects[0].object.module_data;
+        trashMode = false;
+        return;
+    }
 
-            // moduleModal.classList.remove("modal-hidden");
-            specButtons[selectedModule.spec].checked = true;
+    if (!building) {
+        const intersects = raycaster.intersectObject(modules.hitboxes, true);
+        if (intersects.length > 0) {
+            transitionTarget.copy((intersects[0].object as any).position);
+            transitioning = true;
+            selectedModule = (intersects[0].object as any).module_data;
+            if (selectedModule) {
+              (specButtons as any)[selectedModule.spec].checked = true;
+            }
         }
     } else {
-            // Place all preview modules in the scene as real modules
-            if (previewModules.length > 0) {
-                previewModules.forEach(obj => {
-                    // Find the Module instance for this preview object
-                    // (Assume each preview object is a Module.object)
-                    // We'll reconstruct the Module from the preview object
-                    // by copying its position, orientation, and mirroring
-                    let kind = kinds.get("Module " + building);
-                    if (!kind) return;
-                    let placedModule = new Module(kind);
-                    placedModule.position = obj.position;
-                    placedModule.object.position.copy(obj.position);
-                    placedModule.object.rotation.copy(obj.rotation);
-                    placedModule.object.scale.copy(obj.scale);
-                    // Try to copy orientation if available
-                    if (obj.userData.primary_dir) placedModule.primary_dir = obj.userData.primary_dir;
-                    if (obj.userData.secondary_dir) placedModule.secondary_dir = obj.userData.secondary_dir;
-                    modules.add_module(placedModule);
-                });
-                // Remove all preview objects
-                previewModules.forEach(obj => scene.remove(obj));
-                previewModules = [];
-                building = 0;
-            }
+        /* ====== NEW: placement allowed check before committing ====== */
+        const intersects = raycaster.intersectObject(modules.hitboxes, true);
+        if (!(intersects.length && intersects[0].face)) return;
+
+        const obj: any = intersects[0].object;
+        const normal: THREE.Vector3 = intersects[0].face.normal;
+        const targetForAdd = obj.module_data as Module | undefined;
+
+        const okAdd = isPlacementAllowed(targetForAdd, normal);
+        if (!okAdd) {
+            console.log("❌ Invalid placement — this face cannot connect");
+            return;
+        }
+        /* ============================================================ */
+
+        // Place all preview modules in the scene as real modules
+        if (previewModules.length > 0) {
+            previewModules.forEach(preObj => {
+                let kind = kinds.get("Module " + building);
+                if (!kind) return;
+                let placedModule = new Module(kind);
+                placedModule.position = preObj.position.clone();
+                placedModule.object.position.copy(preObj.position);
+                placedModule.object.rotation.copy(preObj.rotation);
+                placedModule.object.scale.copy(preObj.scale);
+                if ((preObj as any).userData?.primary_dir) placedModule.primary_dir = (preObj as any).userData.primary_dir;
+                if ((preObj as any).userData?.secondary_dir) placedModule.secondary_dir = (preObj as any).userData.secondary_dir;
+                modules.add_module(placedModule);
+            });
+            // Remove all preview objects
+            previewModules.forEach(p => scene.remove(p));
+            previewModules = [];
+            building = 0;
+        }
     }
 });
+
 // Mouse move handler for preview
 renderer.domElement.addEventListener("mousemove", (event) => {
     // Remove previous preview modules
@@ -180,37 +224,35 @@ renderer.domElement.addEventListener("mousemove", (event) => {
         previewModules.forEach(obj => scene.remove(obj));
         previewModules = [];
     }
-    // --- RESTARTED PREVIEW SYSTEM ---
-    // Remove all previews if not in building mode
-    if (!building) {
-        if (previewModules.length > 0) {
-            previewModules.forEach(obj => scene.remove(obj));
-            previewModules = [];
-        }
-        return;
-    }
+
+    // Not building? no preview
+    if (!building) return;
+
     const mouse = new THREE.Vector2(
         (event.clientX / window.innerWidth) * 2 - 1,
         -(event.clientY / window.innerHeight) * 2 + 1
     );
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObject(modules.hitboxes);
+    const intersects = raycaster.intersectObject(modules.hitboxes, true);
+
     if (intersects.length && intersects[0].face) {
-        let obj = intersects[0].object;
+        let obj: any = intersects[0].object;
         let normal = intersects[0].face.normal;
-        let pos = new THREE.Vector3(obj.position.x + normal.x * 12, obj.position.y + normal.y * 12, obj.position.z + normal.z * 12);
-        // Remove previous previews
-        if (previewModules.length > 0) {
-            previewModules.forEach(obj => scene.remove(obj));
-            previewModules = [];
-        }
+        // Offset by 12 in the face normal direction (your 12-unit module grid)
+        let pos = new THREE.Vector3(
+          obj.position.x + normal.x * 12,
+          obj.position.y + normal.y * 12,
+          obj.position.z + normal.z * 12
+        );
+
         if (building >= 1) {
             const kind = kinds.get(`Module ${building}`);
             if (kind) {
                 const preview = new Module(kind);
                 preview.position = pos.clone();
-                // Set orientation based on normal
+
+                // Set orientation based on normal (keep your logic)
                 if (normal.x === 1) {
                     preview.primary_dir = Side.LEFT;
                     preview.secondary_dir = Side.FRONT;
@@ -230,25 +272,16 @@ renderer.domElement.addEventListener("mousemove", (event) => {
                     preview.primary_dir = Side.FRONT;
                     preview.secondary_dir = Side.TOP;
                 }
-                preview.object.traverse(child => {
-                    if ((child as THREE.Mesh).isMesh) {
-                        const mesh = child as THREE.Mesh;
-                        const makeGreen = (mat: THREE.Material) => {
-                            if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshBasicMaterial) {
-                                return new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5 });
-                            }
-                            return mat;
-                        };
-                        if (Array.isArray(mesh.material)) {
-                            mesh.material = mesh.material.map(makeGreen);
-                        } else {
-                            mesh.material = makeGreen(mesh.material);
-                        }
-                    }
-                });
+
+                // Tint preview based on allowed/blocked face
+                const targetMod = obj.module_data as Module | undefined;
+                const ok = isPlacementAllowed(targetMod, normal);
+                setPreviewTint(preview.object, ok);
+
                 scene.add(preview.object);
                 previewModules.push(preview.object);
-                // For module 2, also show inverted preview
+
+                // Optional: second preview for Module 2 (inverted visual)
                 if (building === 2) {
                     const invertedPreview = new Module(kind);
                     invertedPreview.position = new THREE.Vector3(
@@ -259,37 +292,25 @@ renderer.domElement.addEventListener("mousemove", (event) => {
                     invertedPreview.primary_dir = preview.primary_dir;
                     invertedPreview.secondary_dir = preview.secondary_dir;
                     invertedPreview.object.scale.x *= -1;
-                    invertedPreview.object.traverse(child => {
-                        if ((child as THREE.Mesh).isMesh) {
-                            const mesh = child as THREE.Mesh;
-                            const makeGreen = (mat: THREE.Material) => {
-                                if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshBasicMaterial) {
-                                    return new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5 });
-                                }
-                                return mat;
-                            };
-                            if (Array.isArray(mesh.material)) {
-                                mesh.material = mesh.material.map(makeGreen);
-                            } else {
-                                mesh.material = makeGreen(mesh.material);
-                            }
-                        }
-                    });
+
+                    // Tint inverted preview too (same ok)
+                    setPreviewTint(invertedPreview.object, ok);
+
                     scene.add(invertedPreview.object);
                     previewModules.push(invertedPreview.object);
                 }
             }
         }
     } else {
-        // Remove all previews if not hovering
+        // No hover -> no preview
         if (previewModules.length > 0) {
             previewModules.forEach(obj => scene.remove(obj));
             previewModules = [];
         }
     }
 });
-camera.position.z = 5;
 
+camera.position.z = 5;
 
 function animate() {
     cube.rotation.x += 0.01;
@@ -303,98 +324,7 @@ function animate() {
         }
     }
 
-    console.log(trashMode);
-
-    // Preview module logic
-    if (building && previewPosition) {
-        // Remove previous preview
-        if (previewModule) {
-            scene.remove(previewModule.object);
-            previewModule = null;
-        }
-        if (building === 2) {
-            const kind2 = kinds.get("Module 2");
-            if (kind2) {
-                // Normal preview
-                const normalPreview = new Module(kind2);
-                normalPreview.position = previewPosition.clone();
-                normalPreview.primary_dir = Side.FRONT;
-                normalPreview.secondary_dir = Side.TOP;
-                normalPreview.object.traverse(child => {
-                    if ((child as THREE.Mesh).isMesh) {
-                        const mesh = child as THREE.Mesh;
-                        const makeGreen = (mat: THREE.Material) => {
-                            if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshBasicMaterial) {
-                                return new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5 });
-                            }
-                            return mat;
-                        };
-                        if (Array.isArray(mesh.material)) {
-                            mesh.material = mesh.material.map(makeGreen);
-                        } else {
-                            mesh.material = makeGreen(mesh.material);
-                        }
-                    }
-                });
-                scene.add(normalPreview.object);
-                // Inverted preview
-                const invertedPreview = new Module(kind2);
-                const dirVec = direction_vectors[normalPreview.primary_dir];
-                invertedPreview.position = previewPosition.clone().addScaledVector(dirVec, -12);
-                invertedPreview.primary_dir = normalPreview.primary_dir;
-                invertedPreview.secondary_dir = normalPreview.secondary_dir;
-                invertedPreview.object.scale.x *= -1;
-                invertedPreview.object.traverse(child => {
-                    if ((child as THREE.Mesh).isMesh) {
-                        const mesh = child as THREE.Mesh;
-                        const makeGreen = (mat: THREE.Material) => {
-                            if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshBasicMaterial) {
-                                return new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5 });
-                            }
-                            return mat;
-                        };
-                        if (Array.isArray(mesh.material)) {
-                            mesh.material = mesh.material.map(makeGreen);
-                        } else {
-                            mesh.material = makeGreen(mesh.material);
-                        }
-                    }
-                });
-                scene.add(invertedPreview.object);
-                // Store reference to remove later
-                previewModule = normalPreview;
-                // Store inverted as property for removal
-                (previewModule as any).inverted = invertedPreview;
-            }
-        } else {
-            previewModule = new Module(kinds.get("Module " + building));
-            previewModule.position = previewPosition.clone();
-            previewModule.object.traverse(child => {
-                if ((child as THREE.Mesh).isMesh) {
-                    const mesh = child as THREE.Mesh;
-                    const makeGreen = (mat: THREE.Material) => {
-                        if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshBasicMaterial) {
-                            return new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5 });
-                        }
-                        return mat;
-                    };
-                    if (Array.isArray(mesh.material)) {
-                        mesh.material = mesh.material.map(makeGreen);
-                    } else {
-                        mesh.material = makeGreen(mesh.material);
-                    }
-                }
-            });
-            scene.add(previewModule.object);
-        }
-    } else if (previewModule) {
-        // Remove both preview objects if module 2
-        if ((previewModule as any).inverted) {
-            scene.remove((previewModule as any).inverted.object);
-        }
-        scene.remove(previewModule.object);
-        previewModule = null;
-    }
+    // (We no longer recolor previews here; tint happens in mousemove)
 
     controls.update();
     renderer.render(scene, camera);
@@ -426,12 +356,10 @@ if (evaluateBtn && crewModal) {
     crewBtns.forEach(btn => {
         btn.addEventListener("click", (e) => {
             const size = (e.target as HTMLButtonElement).dataset.size;
-            // You can handle the selected crew size here
             console.log("Selected crew size:", size);
             crewModal.classList.add("modal-hidden");
         });
     });
-    // Optional: close modal when clicking outside modal-content
     crewModal.addEventListener("click", (e) => {
         if (e.target === crewModal) {
             crewModal.classList.add("modal-hidden");
@@ -439,16 +367,15 @@ if (evaluateBtn && crewModal) {
     });
 }
 
-if(trashBtn){
+if (trashBtn){
     trashBtn.addEventListener("click", () => {
         trashMode = !trashMode;
-})
+    });
 }
 
 if (module1Btn) {
     module1Btn.addEventListener("click", () => {
         building = 1;
-        // Remove any previous preview
         if (previewModule) {
             scene.remove(previewModule.object);
             previewModule = null;
@@ -459,7 +386,6 @@ if (module1Btn) {
 if (module2Btn) {
     module2Btn.addEventListener("click", () => {
         building = 2;
-        // Remove any previous preview
         if (previewModule) {
             scene.remove(previewModule.object);
             previewModule = null;
@@ -471,7 +397,6 @@ if (module3Btn) {
     module3Btn.addEventListener("click", () => {
         building = 3;
         console.log("3");
-        // Remove any previous preview
         if (previewModule) {
             scene.remove(previewModule.object);
             previewModule = null;
@@ -482,7 +407,6 @@ if (module3Btn) {
 if (module4Btn) {
     module4Btn.addEventListener("click", () => {
         building = 4;
-        // Remove any previous preview
         if (previewModule) {
             scene.remove(previewModule.object);
             previewModule = null;
@@ -493,7 +417,6 @@ if (module4Btn) {
 if (module5Btn) {
     module5Btn.addEventListener("click", () => {
         building = 5;
-        // Remove any previous preview
         if (previewModule) {
             scene.remove(previewModule.object);
             previewModule = null;
@@ -504,7 +427,6 @@ if (module5Btn) {
 if (module6Btn) {
     module6Btn.addEventListener("click", () => {
         building = 6;
-        // Remove any previous preview
         if (previewModule) {
             scene.remove(previewModule.object);
             previewModule = null;
@@ -515,7 +437,6 @@ if (module6Btn) {
 if (module7Btn) {
     module7Btn.addEventListener("click", () => {
         building = 7;
-        // Remove any previous preview
         if (previewModule) {
             scene.remove(previewModule.object);
             previewModule = null;
@@ -526,7 +447,6 @@ if (module7Btn) {
 if (module8Btn) {
     module8Btn.addEventListener("click", () => {
         building = 8;
-        // Remove any previous preview
         if (previewModule) {
             scene.remove(previewModule.object);
             previewModule = null;
@@ -535,7 +455,6 @@ if (module8Btn) {
 }
 
 let problems_box: HTMLElement = document.getElementById("problems-box");
-
 problems_box.addEventListener("click", (ev) => {
     problems_box.classList.toggle("open");
-})
+});
