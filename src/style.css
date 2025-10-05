@@ -1,3 +1,7 @@
+body {
+    font-family: "Inter", "Calibri", "Arial", sans-serif;
+}
+
 #modules-bar {
     position: fixed;
     left: 0;
@@ -35,7 +39,7 @@
     font-weight: bold;
     font-size: 1.1rem;
     z-index: 101;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 #problems-box {
     position: fixed;
@@ -45,10 +49,47 @@
     color: #fff;
     padding: 12px 24px;
     border-radius: 12px;
-    font-weight: bold;
     font-size: 1.1rem;
     z-index: 101;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    width: 30ch;
+
+    overflow: hidden;
+
+    transition: height 500ms, width 500ms;
+}
+
+#problems-box h1 {
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+#problems-box.open {
+}
+
+#problems-box .content {
+    opacity: 0;
+    height: 0;
+
+    padding-left: 2ch;
+
+    transition: all 0.25s;
+
+    overflow: scroll;
+
+    scrollbar-color: #ffffff88 #00000000;
+    /* scrollbar-width: 3px; */
+}
+
+#problems-box.open .content {
+    margin-top: 1rem;
+    opacity: 1;
+
+    height: 50vh;
+}
+
+#problems-box ul {
+    list-style: disc;
 }
 
 #evaluate-btn {
@@ -63,7 +104,7 @@
     font-size: 1.1rem;
     font-weight: bold;
     cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
     z-index: 102;
     transition: background 0.2s;
 }
@@ -80,7 +121,7 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0,0,0,0.4);
+    background: rgba(0, 0, 0, 0.4);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -90,7 +131,7 @@
     background: #fff;
     padding: 32px 40px;
     border-radius: 16px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
     text-align: center;
 }
 .crew-options {
