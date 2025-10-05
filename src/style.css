@@ -165,3 +165,25 @@ body {
 .crew-btn:hover {
     background: #2d3142;
 }
+#spec-selector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    gap: 0.5em;
+}
+#spec-selector label {
+    padding: 0.25em 1em;
+    width: 100%;
+    border-radius: 0.25em;
+
+    text-align: left;
+    font-size: 1.5rem;
+}
+#spec-selector input[type="radio"] {
+    display: none;
+}
+#spec-selector label:has(> input:checked) {
+    outline: 4px black solid;
+}
