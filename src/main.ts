@@ -9,6 +9,7 @@ import { Side, get_side_from_vector } from "./data/sides";
 import { SpecType } from "./data/specializations";
 import { getModuleIndex } from "./data/module_kind";
 import { setPreviewTint, tintModuleForTrash } from "./editor";
+import { createSpaceScene } from "./space-scene";
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -18,6 +19,9 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setAnimationLoop(animate);
 document.body.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
+
+const container = document.getElementById("app")!;
+createSpaceScene(container);
 
 const dirLight = new THREE.DirectionalLight(0xffffff, 3);
 dirLight.position.set(-1, 2, 4);
@@ -72,7 +76,6 @@ for (let rb of document.querySelectorAll('input[name="spectype"]')) {
     if (e.target?.checked && selectedModule) selectedModule.spec = e.target.value;
   });
 }
-
 const openModuleModal = (mod: Module) => {
   selectedModule = mod;
   const radios = document.querySelectorAll('input[name="spectype"]') as NodeListOf<HTMLInputElement>;
@@ -86,7 +89,6 @@ const openModuleModal = (mod: Module) => {
   }
   moduleModal?.classList.remove("modal-hidden");
 };
-
 moduleModal?.addEventListener("click", (e) => {
   if (e.target === moduleModal) moduleModal.classList.add("modal-hidden");
 });
@@ -171,6 +173,24 @@ const canTrash = (modulesInst: Modules, mod: Module): boolean => {
   return neighbors.length === 1;
 };
 
+function applyExtraPlacementRules(placingIndex: number, targetIdx: number, sideLocalOnTarget: Side): boolean {
+  if ((placingIndex === 1 || placingIndex === 2) && (targetIdx >= 3 && targetIdx <= 7)) {
+    if (targetIdx === 3 && sideLocalOnTarget === Side.FRONT) return true;
+    return false;
+  }
+  if ((placingIndex >= 3 && placingIndex <= 7) && (targetIdx === 1 || targetIdx === 2)) return false;
+  return true;
+}
+
+function chooseSecondaryFromWorld(dirWorld: THREE.Vector3): Side {
+  const up = new THREE.Vector3(0, 1, 0);
+  let ref = up.clone();
+  if (Math.abs(dirWorld.dot(up)) > 0.999) ref.set(0, 0, 1);
+  const right = new THREE.Vector3().crossVectors(dirWorld, ref).normalize();
+  const correctedUp = new THREE.Vector3().crossVectors(right, dirWorld).normalize();
+  return get_side_from_vector(correctedUp);
+}
+
 renderer.domElement.addEventListener("pointerdown", (event) => {
   scene.updateMatrixWorld(true);
   const mouse = new THREE.Vector2((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
@@ -214,9 +234,13 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
 
   const hitObj: any = intersects[0].object;
   const nLocalOnTarget = localFaceNormal(intersects[0]);
-  const faceOK = isPlacementAllowed(hitObj.module_data as Module, nLocalOnTarget, building);
+  const targetMod = hitObj.module_data as Module | undefined;
+  const targetIdx = getModuleIndex(targetMod);
+  const sideLocal = get_side_from_vector(nLocalOnTarget);
+  let ok = isPlacementAllowed(targetMod, nLocalOnTarget, building);
+  if (ok) ok = applyExtraPlacementRules(building, targetIdx, sideLocal);
 
-  if (!faceOK) {
+  if (!ok) {
     showFlash("You cannot place that there", 1000);
     if (previewModules.length > 0) {
       previewModules.forEach((p) => scene.remove(p));
@@ -303,18 +327,21 @@ renderer.domElement.addEventListener("mousemove", (event) => {
   preview.position = pos.clone();
 
   const primary = get_side_from_vector(dirWorld.clone().multiplyScalar(-1));
+  const secondary = chooseSecondaryFromWorld(dirWorld);
   preview.primary_dir = primary;
-  preview.secondary_dir = (primary === Side.FRONT || primary === Side.BACK) ? Side.TOP : Side.FRONT;
+  preview.secondary_dir = secondary;
 
   (preview.object as any).userData = (preview.object as any).userData || {};
   (preview.object as any).userData.primary_dir = preview.primary_dir;
   (preview.object as any).userData.secondary_dir = preview.secondary_dir;
 
   const targetMod = hitObj.module_data as Module | undefined;
-  const ok = isPlacementAllowed(targetMod, nLocalOnTarget, building);
-
   const targetIdx = getModuleIndex(targetMod);
-  const shouldInvert = building === 8 && targetIdx >= 3 && targetIdx <= 8;
+  const sideLocal = get_side_from_vector(nLocalOnTarget);
+  let ok = isPlacementAllowed(targetMod, nLocalOnTarget, building);
+  if (ok) ok = applyExtraPlacementRules(building, targetIdx, sideLocal);
+
+  const shouldInvert = building === 8 && targetIdx >= 3 && targetIdx <= 7;
   if (shouldInvert) preview.object.scale.x *= -1;
 
   setPreviewTint(preview.object, ok);
