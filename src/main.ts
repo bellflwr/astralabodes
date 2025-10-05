@@ -203,11 +203,30 @@ load_kinds(() => {
   updateCostUI();
 });
 
-const canTrash = (modulesInst: Modules, mod: Module): boolean => {
-  if (rootModule && mod === rootModule) return false;
-  const neighbors = getNeighbors(modulesInst, mod);
-  return neighbors.length === 1;
+const computeRemovalSet = (modulesInst: Modules, target: Module): Set<Module> => {
+  const set = new Set<Module>();
+  set.add(target);
+  if (getModuleIndex(target) === 2) {
+    const buddy = getBackNeighborForModule2(modulesInst, target);
+    if (buddy) set.add(buddy);
+  }
+  return set;
 };
+
+const willRemainingCountBeValid = (modulesInst: Modules, target: Module): boolean => {
+  const removal = computeRemovalSet(modulesInst, target);
+  const remaining = modulesInst.modules.length - removal.size;
+  return remaining >= 1;
+};
+
+/* Must have exactly one neighbor on the CLICKED target.
+   Must leave >= 1 module after removal (handles Module 2 paired delete). */
+const canTrash = (modulesInst: Modules, mod: Module): boolean => {
+  const neighbors = getNeighbors(modulesInst, mod);
+  if (neighbors.length !== 1) return false;
+  return willRemainingCountBeValid(modulesInst, mod);
+};
+
 
 function applyExtraPlacementRules(placingIndex: number, targetIdx: number, sideLocalOnTarget: Side): boolean {
   if ((placingIndex === 1 || placingIndex === 2) && (targetIdx >= 3 && targetIdx <= 7)) {
@@ -322,17 +341,21 @@ renderer.domElement.addEventListener("mousemove", (event) => {
     if (hit.length && hit[0].object) {
       const target: any = hit[0].object;
       const mod = target.module_data as Module;
-      if (mod && canTrash(modules, mod)) {
-        tintModuleForTrash(mod, true);
-        trashHoverTargets.push(mod);
-        if (getModuleIndex(mod) === 2) {
-          const buddy = getBackNeighborForModule2(modules, mod);
-          if (buddy) {
-            tintModuleForTrash(buddy, true);
-            trashHoverTargets.push(buddy);
-          }
-        }
+     if (mod) {
+  const ok = canTrash(modules, mod);
+  if (ok) {
+    tintModuleForTrash(mod, true);
+    trashHoverTargets.push(mod);
+    if (getModuleIndex(mod) === 2) {
+      const buddy = getBackNeighborForModule2(modules, mod);
+      if (buddy) {
+        tintModuleForTrash(buddy, true);
+        trashHoverTargets.push(buddy);
       }
+    }
+  }
+}
+
     }
     if (previewModules.length > 0) {
       previewModules.forEach((o) => scene.remove(o));
