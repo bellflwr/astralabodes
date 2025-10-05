@@ -486,6 +486,10 @@ function animate() {
     moon.position.x = Math.cos(clock.getElapsedTime() * -0.01) * 2000 + earth.position.x;
     moon.position.z = Math.sin(clock.getElapsedTime() * -0.01) * 2000 + earth.position.z;
   }
+
+  if(moon && moon.rotation){
+    moon.rotation.y += 0.0001;
+  }
   controls.update();
   renderer.render(scene, camera);
 }
