@@ -2,14 +2,15 @@ const SpecType = {
     Unassigned: 0,
     Sleeping: 1,
     Medical: 2,
-    Eating: 3,
+    Meal: 3,
     Exercise: 4,
     Recreation: 5,
     Logistics: 6,
     Maintenance: 7,
     Planning: 8,
-    Computing: 9,
+    EVA_Support: 9,
     Waste: 10,
+    Airlock_Overlaps: 11,
 } as const;
 
 interface SpecMeta {
@@ -44,6 +45,78 @@ const specMeta: Map<SpecType, SpecMeta> = new Map([
             min_space: 123456789,
             color: "#ce7cafff",
         },
+    ],
+    [
+        SpecType.Meal,
+        {
+            description: "Meal consumption.",
+            min_space: 10.09,
+            color: "#e66a6aff",
+        },
+    ],
+    [
+        SpecType.Exercise,
+        {
+            description: "Bone loading, sensorinometer conditioning.",
+            min_space: 13.42,
+            color: "#addb6cff",
+        },
+    ],
+    [
+        SpecType.Recreation,
+        {
+            description: "Tabletop games, video/movie/window viewing.",
+            min_space: 28.29,
+            color: "#46d7e1ff",
+        },
+    ],
+    [
+        SpecType.Logistics,
+        {
+            description: "Physical worksurface access, temporary stowage.",
+            min_space: 10.35,
+            color: "#59ffd3ff",
+        },
+    ],
+    [
+        SpecType.Maintenance,
+        {
+            description: "Computer display, soft goods fabrication, equipment diagnostics.",
+            min_space: 5.10,
+            color: "#e8b460ff",
+        },
+    ],
+    [
+        SpecType.Planning,
+        {
+            description: "Mission training, command and control interface, team meetings.",
+            min_space: 31.71,
+            color: "#6f99e8ff",
+        },
+    ],
+    [
+        SpecType.EVA_Support,
+        {
+            description: "Suit testing component, video/audio communication.",
+            min_space: 5.10,
+            color: "#755ae3ff",
+        },
+    ],
+    [
+        SpecType.Waste,
+        {
+            description: "Trash containment.",
+            min_space: 3.76,
+            color: "#80598fff",
+        },
+    ],
+    [
+        SpecType.Airlock_Overlaps,
+        {
+            description: "Depressurization/repressurization, don/doffing.",
+            min_space: 12.87,
+            color: "#bed665ff",
+        }
     ],
 ]);
 

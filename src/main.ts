@@ -6,53 +6,67 @@ import { getBackNeighborForModule2, Modules, getNeighbors } from "./data/modules
 import { Object3D } from "three";
 import { isPlacementAllowed, Module } from "./data/module";
 import { Side, get_side_from_vector } from "./data/sides";
-import { SpecType } from "./data/specializations";
-import { EffectComposer, GLTFLoader, RenderPass, ThreeMFLoader, type GLTF } from "three/examples/jsm/Addons.js";
-import { UnrealBloomPass } from "three/examples/jsm/Addons.js";
+import { specMeta, SpecType } from "./data/specializations";
+import { GLTFLoader, type GLTF } from "three/examples/jsm/Addons.js";
 import { getModuleIndex } from "./data/module_kind";
 import { setPreviewTint, tintModuleForTrash } from "./editor";
-import { createSpaceScene } from "./space-scene";
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(20, 20, 0);
 
-const modelLoader = new GLTFLoader();
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 3000);
+camera.position.set(24, 20, 32);
 
-let earth: Object3D;
-let moon: Object3D;
-
-modelLoader.load("models/Earth.glb", function(gltf: GLTF){
-  earth = gltf.scene;
-  scene.add(earth);
-  earth.position.set(-700, -650, 250);
-  earth.scale.set(5, 5, 5);
-})
-
-modelLoader.load("models/Moon.glb", function(gltf: GLTF){
-  moon = gltf.scene;
-  scene.add(moon);
-  moon.position.set(600, -300, 700);
-  moon.scale.set(2, 2, 2);
-})
-const renderer = new THREE.WebGLRenderer();
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.physicallyCorrectLights = true;
 renderer.setAnimationLoop(animate);
 document.body.appendChild(renderer.domElement);
-const controls = new OrbitControls(camera, renderer.domElement);
 
-const container = document.getElementById("app")!;
-createSpaceScene(container);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.target.set(0, 0, 0);
+
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+});
+
+const hemi = new THREE.HemisphereLight(0xbdd2ff, 0x0a0a12, 0.25);
+scene.add(hemi);
 
 const dirLight = new THREE.DirectionalLight(0xffffff, 3);
-dirLight.position.set(-1, 2, 4);
+dirLight.position.set(-10, 12, 14);
+dirLight.castShadow = false;
 scene.add(dirLight);
-scene.add(new THREE.AmbientLight(0xffffff, 1));
 
 new THREE.TextureLoader().load("./public/images/milky_way_skybox.jpg", (texture) => {
   texture.mapping = THREE.EquirectangularReflectionMapping;
   texture.colorSpace = THREE.SRGBColorSpace;
   scene.background = texture;
+  scene.environment = texture;
+});
+
+const modelLoader = new GLTFLoader();
+let earth: Object3D | null = null;
+let moon: Object3D | null = null;
+
+modelLoader.load("models/Earth.glb", (gltf: GLTF) => {
+  earth = gltf.scene;
+  earth.position.set(-700, -650, 250);
+  earth.scale.set(5, 5, 5);
+  scene.add(earth);
+});
+modelLoader.load("models/Moon.glb", (gltf: GLTF) => {
+  moon = gltf.scene;
+  moon.position.set(600, -300, 700);
+  moon.scale.set(2, 2, 2);
+  scene.add(moon);
 });
 
 let mod_group: Object3D = new Object3D();
@@ -86,10 +100,12 @@ let problems_box: HTMLElement = document.getElementById("problems-box");
 
 if (specSelector && document.querySelectorAll('input[name="spectype"]').length === 0) {
   for (const [k, v] of Object.entries(SpecType)) {
-    specSelector.innerHTML += "<div>";
-    specSelector.innerHTML += `<input type="radio" name="spectype" id="${k}-radio" value="${v}" />`;
-    specSelector.innerHTML += `<label for="${k}-radio">${k}</label>`;
-    specSelector.innerHTML += "</div>";
+    let meta = specMeta.get(v);
+    if (!meta) meta = { color: "#FF0000" };
+    specSelector.innerHTML += `<label style="background-color: ${meta.color};">
+      <input type="radio" name="spectype" id="${k}-radio" value="${v}" />
+      <span>${k}</span>
+    </label>`;
   }
 }
 for (let rb of document.querySelectorAll('input[name="spectype"]')) {
@@ -102,7 +118,7 @@ const openModuleModal = (mod: Module) => {
   const radios = document.querySelectorAll('input[name="spectype"]') as NodeListOf<HTMLInputElement>;
   radios.forEach((r) => (r.checked = false));
   if (selectedModule) {
-    const id = Object.keys(SpecType).find((k) => (SpecType as any)[k] === selectedModule!.spec);
+    const id = Object.keys(SpecType).find((k) => (SpecType as any)[k] == selectedModule!.spec);
     if (id) {
       const el = document.getElementById(`${id}-radio`) as HTMLInputElement;
       if (el) el.checked = true;
@@ -196,6 +212,19 @@ const computeRemovalSet = (modulesInst: Modules, target: Module): Set<Module> =>
     if (buddy) set.add(buddy);
   }
   return set;
+<<<<<<< HEAD
+=======
+};
+const willRemainingCountBeValid = (modulesInst: Modules, target: Module): boolean => {
+  const removal = computeRemovalSet(modulesInst, target);
+  const remaining = modulesInst.modules.length - removal.size;
+  return remaining >= 1;
+};
+const canTrash = (modulesInst: Modules, mod: Module): boolean => {
+  const neighbors = getNeighbors(modulesInst, mod);
+  if (neighbors.length !== 1) return false;
+  return willRemainingCountBeValid(modulesInst, mod);
+>>>>>>> main
 };
 
 const willRemainingCountBeValid = (modulesInst: Modules, target: Module): boolean => {
@@ -326,6 +355,7 @@ renderer.domElement.addEventListener("mousemove", (event) => {
     if (hit.length && hit[0].object) {
       const target: any = hit[0].object;
       const mod = target.module_data as Module;
+<<<<<<< HEAD
      if (mod) {
   const ok = canTrash(modules, mod);
   if (ok) {
@@ -336,6 +366,21 @@ renderer.domElement.addEventListener("mousemove", (event) => {
       if (buddy) {
         tintModuleForTrash(buddy, true);
         trashHoverTargets.push(buddy);
+=======
+      if (mod) {
+        const ok = canTrash(modules, mod);
+        if (ok) {
+          tintModuleForTrash(mod, true);
+          trashHoverTargets.push(mod);
+          if (getModuleIndex(mod) === 2) {
+            const buddy = getBackNeighborForModule2(modules, mod);
+            if (buddy) {
+              tintModuleForTrash(buddy, true);
+              trashHoverTargets.push(buddy);
+            }
+          }
+        }
+>>>>>>> main
       }
     }
   }
@@ -433,7 +478,6 @@ module6Btn?.addEventListener("click", () => setBuilding(6));
 module7Btn?.addEventListener("click", () => setBuilding(7));
 module8Btn?.addEventListener("click", () => setBuilding(8));
 
-camera.position.z = 5;
 function animate() {
   controls.update();
   renderer.render(scene, camera);
