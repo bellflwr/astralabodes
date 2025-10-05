@@ -102,8 +102,10 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
             let normal = intersects[0].face.normal;
             
             let module = new Module(kinds.get("Module " + building));
+            let module = new Module(kinds.get("Module " + building));
             module.position = new THREE.Vector3(obj.position.x + normal.x * 12, obj.position.y + normal.y * 12, obj.position.z + normal.z * 12);
             modules.add_module(module)
+            building = 0;
             building = 0;
         }
     }
@@ -166,11 +168,6 @@ if (module1Btn) {
     });
 }
 
-let problems_box: HTMLElement = document.getElementById("problems-box");
-
-problems_box.addEventListener("click", (ev) => {
-    problems_box.classList.toggle("open");
-})
 if (module2Btn) {
     module2Btn.addEventListener("click", () => {
         building = 2;
