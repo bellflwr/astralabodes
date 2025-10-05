@@ -20,6 +20,7 @@ camera.position.set(20, 20, 0);
 let building = 0;
 let previewModule: Module | null = null;
 let previewPosition: THREE.Vector3 | null = null;
+let previewNormal: THREE.Vector3 | null = null;
 
 const loader = new THREE.TextureLoader();
 const texture = loader.load(
@@ -104,17 +105,27 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
             let pos = new THREE.Vector3(obj.position.x + normal.x * 12, obj.position.y + normal.y * 12, obj.position.z + normal.z * 12);
             let module = new Module(kinds.get("Module " + building));
             module.position = pos;
+                    if (normal.x === 1) {
+                        module.primary_dir = Side.LEFT;
+                        module.secondary_dir = Side.FRONT;
+                    } else if (normal.x === -1) {
+                        module.primary_dir = Side.RIGHT;
+                        module.secondary_dir = Side.FRONT;
+                    } else if (normal.y === 1) {
+                        module.primary_dir = Side.BOTTOM;
+                        module.secondary_dir = Side.FRONT;
+                    } else if (normal.y === -1) {
+                        module.primary_dir = Side.TOP;
+                        module.secondary_dir = Side.FRONT;
+                    } else if (normal.z === 1) {
+                        module.primary_dir = Side.BACK;
+                        module.secondary_dir = Side.TOP;
+                    } else if (normal.z === -1) {
+                        module.primary_dir = Side.FRONT;
+                        module.secondary_dir = Side.TOP;
+                    }
             // Remove preview and restore original materials
             if (previewModule) {
-                // Restore original materials if needed
-                previewModule.object.traverse(child => {
-                    if ((child as THREE.Mesh).isMesh) {
-                        const mesh = child as THREE.Mesh;
-                        if (mesh.material && mesh.userData.originalMaterial) {
-                            mesh.material = mesh.userData.originalMaterial;
-                        }
-                    }
-                });
                 scene.remove(previewModule.object);
                 previewModule = null;
             }
@@ -138,8 +149,33 @@ renderer.domElement.addEventListener("mousemove", (event) => {
         let normal = intersects[0].face.normal;
         let pos = new THREE.Vector3(obj.position.x + normal.x * 12, obj.position.y + normal.y * 12, obj.position.z + normal.z * 12);
         previewPosition = pos;
+        previewNormal = normal.clone();
+        // Set preview rotation here
+        if (previewModule) {
+            const EPS = 0.99;
+            if (normal.x === 1) {
+                previewModule.primary_dir = Side.LEFT;
+                previewModule.secondary_dir = Side.FRONT;
+            } else if (normal.x === -1) {
+                previewModule.primary_dir = Side.RIGHT;
+                previewModule.secondary_dir = Side.FRONT;
+            } else if (normal.y === 1) {
+                previewModule.primary_dir = Side.BOTTOM;
+                previewModule.secondary_dir = Side.FRONT;
+            } else if (normal.y === -1) {
+                previewModule.primary_dir = Side.TOP;
+                previewModule.secondary_dir = Side.FRONT;
+            } else if (normal.z === 1) {
+                previewModule.primary_dir = Side.BACK;
+                previewModule.secondary_dir = Side.TOP;
+            } else if (normal.z === -1) {
+                previewModule.primary_dir = Side.FRONT;
+                previewModule.secondary_dir = Side.TOP;
+            }
+        }
     } else {
         previewPosition = null;
+        previewNormal = null;
     }
 });
 camera.position.z = 5;
