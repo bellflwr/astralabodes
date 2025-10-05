@@ -113,6 +113,9 @@ body {
     overflow: hidden;
     transition: height 500ms, width 500ms;
 }
+#problems-box.no-problems {
+    background: #23ef78;
+}
 #problems-box h1 {
     font-size: 1.1rem;
     font-weight: bold;
