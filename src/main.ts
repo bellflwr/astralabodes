@@ -97,6 +97,8 @@ const module8Btn = document.querySelectorAll(".module-btn")[7] as HTMLButtonElem
 const trashBtn = document.getElementById("trash-btn") as HTMLButtonElement;
 const costBox = document.getElementById("cost-box") as HTMLDivElement | null;
 let problems_box: HTMLElement = document.getElementById("problems-box");
+let problems_count: HTMLElement = document.getElementById("problems-count");
+let problems_list: HTMLElement = document.getElementById("problems-list");
 
 if (specSelector && document.querySelectorAll('input[name="spectype"]').length === 0) {
   for (const [k, v] of Object.entries(SpecType)) {
@@ -108,9 +110,36 @@ if (specSelector && document.querySelectorAll('input[name="spectype"]').length =
     </label>`;
   }
 }
+
+function update_problem_list() {
+  modules.calculate_specs();
+  problems_list.innerHTML = "";
+  
+  let problemCount = 0;
+
+  for(const [spec, meta] of specMeta.entries()) {
+    const id = Object.keys(SpecType).find((k) => (SpecType as any)[k] == spec);
+
+    if(modules.specs.get(spec) < meta.min_space) {
+      problems_list.innerHTML += `
+      <li style="border-left: 0.5em solid ${meta.color};">
+      <b>${id}</b>: Minimum is ${meta.min_space}m&#179;, but you have ${modules.specs.get(spec)}m&#179;
+      </li>
+      `
+      problemCount++;
+    }
+  }
+
+  problems_count.innerHTML = problemCount.toFixed(0);
+}
+
 for (let rb of document.querySelectorAll('input[name="spectype"]')) {
   rb.addEventListener("change", (e: any) => {
-    if (e.target?.checked && selectedModule) selectedModule.spec = e.target.value;
+    if (e.target?.checked && selectedModule)
+    {
+      selectedModule.spec = parseInt(e.target.value);
+      update_problem_list();
+    }
   });
 }
 const openModuleModal = (mod: Module) => {
@@ -202,6 +231,7 @@ load_kinds(() => {
   m.secondary_dir = Side.LEFT;
   rootModule = m;
   updateCostUI();
+  update_problem_list();
 });
 
 const computeRemovalSet = (modulesInst: Modules, target: Module): Set<Module> => {
