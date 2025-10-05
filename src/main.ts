@@ -44,13 +44,6 @@ const geometry = new THREE.BoxGeometry(1, 1, 1);
 const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
 const cube = new THREE.Mesh(geometry, material);
 
-const gridSize = 84;
-const gridSpacing = 12;
-const gridHelper = new THREE.GridHelper(gridSize * gridSpacing, gridSize, 0x888888, 0x444444);
-scene.add(gridHelper);
-
-const placedCubes: THREE.Mesh[] = [];
-
 const point_light_color = 0xffffff;
 const point_light_intensity = 3;
 
@@ -101,22 +94,16 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
             transitioning = true;
         }
     } else {
-        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-        const intersectPoint = new THREE.Vector3();
-        raycaster.ray.intersectPlane(plane, intersectPoint);
 
-        let x = Math.round(intersectPoint.x / gridSpacing);
-        let z = Math.round(intersectPoint.z / gridSpacing);
-        if (x >= -gridSize/2 && x < gridSize/2 && z >= -gridSize/2 && z < gridSize/2) {
-            const alreadyPlaced = placedCubes.some(c => c.position.x === x * gridSpacing && c.position.z === z * gridSpacing);
-            if (!alreadyPlaced) {
-                let module1 = new Module(kinds.get("Module 1"));
-                module1.position = new THREE.Vector3(x * gridSpacing, 0, z * gridSpacing);
-                modules.add_module(module1);
-                // Turn off building mode
-                building = false;
-                if (module1Btn) module1Btn.classList.remove("active");
-            }
+        const intersects = raycaster.intersectObject(modules.hitboxes);
+        if(intersects.length){
+            let obj = intersects[0].object;
+            let normal = intersects[0].face.normal;
+            
+            let module = new Module(kinds.get("Module 1"));
+            module.position = new THREE.Vector3(obj.position.x + normal.x * 12, obj.position.y + normal.y * 12, obj.position.z + normal.z * 12);
+            modules.add_module(module)
+            building = false;
         }
     }
 });

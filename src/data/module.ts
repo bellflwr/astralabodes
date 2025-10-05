@@ -50,7 +50,7 @@ export class Module {
     }
 
     get position(): Vector3 {
-        return this.object.position;
+        return this.object.position.clone();
     }
 
     set position(value: Vector3) {
