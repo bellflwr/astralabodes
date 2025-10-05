@@ -35,10 +35,9 @@ const getModuleIndex = (mod?: Module): number => {
 };
 
 /**
- * Placement rule:
- * - 3..7 can place on 3..7 only, OR on Module 8's BACK face
- * - Module 8's FRONT face can only be placed on by 1 or 2
- * - Otherwise, default to target's connectable_sides for the face
+ * Placement rule (FRONT of 8):
+ * - 3..7 can place on 3..7 only, OR on Module 8's FRONT face
+ * - Otherwise, use target connectable_sides
  */
 const isPlacementAllowed = (
   targetMod: Module | undefined,
@@ -49,17 +48,18 @@ const isPlacementAllowed = (
 
   const side = faceFromNormalOnTarget(faceNormal.clone().round());
   const baseOK = !!(targetMod.kind.connectable_sides?.[side]);
-
   const targetIndex = getModuleIndex(targetMod);
 
+  // 3..7 behavior
   if (placingIndex >= 3 && placingIndex <= 7) {
     if (targetIndex >= 3 && targetIndex <= 7) return baseOK;
-    if (targetIndex === 8) return baseOK && side === Side.BACK;
+    if (targetIndex === 8) return baseOK && side === Side.FRONT;
     return false;
   }
 
+  // 8 FRONT can accept 1..7
   if (targetIndex === 8 && side === Side.FRONT) {
-    return baseOK && (placingIndex === 1 || placingIndex === 2);
+    return baseOK && placingIndex >= 1 && placingIndex <= 7;
   }
 
   return baseOK;
@@ -124,7 +124,7 @@ const sideFromDelta = (delta: THREE.Vector3): Side | null => {
   return null;
 };
 
-// For a given module, list neighbors that are exactly 12 units away along one axis
+// For a given module, list neighbors exactly 12 units away along one axis, honoring connectable_sides
 const getNeighbors = (modules: Modules, mod: Module): Array<{ neighbor: Module, sideOnMod: Side, sideOnNei: Side }> => {
   const out: Array<{ neighbor: Module, sideOnMod: Side, sideOnNei: Side }> = [];
   for (const other of modules.modules) {
@@ -132,7 +132,6 @@ const getNeighbors = (modules: Modules, mod: Module): Array<{ neighbor: Module, 
     const delta = new THREE.Vector3().subVectors(other.position, mod.position);
     const sideOnMod = sideFromDelta(delta);
     if (sideOnMod === null) continue;
-    // touching face on other is the opposite
     const opposite = (s: Side): Side => {
       switch (s) {
         case Side.TOP: return Side.BOTTOM;
@@ -144,8 +143,6 @@ const getNeighbors = (modules: Modules, mod: Module): Array<{ neighbor: Module, 
       }
     };
     const sideOnNei = opposite(sideOnMod);
-
-    // Respect connectable_sides both ways
     const okAB = !!mod.kind.connectable_sides?.[sideOnMod];
     const okBA = !!other.kind.connectable_sides?.[sideOnNei];
     if (okAB && okBA) {
@@ -155,19 +152,16 @@ const getNeighbors = (modules: Modules, mod: Module): Array<{ neighbor: Module, 
   return out;
 };
 
-// Special: for Module 2, find its "back" neighbor (if any)
+// Special: for Module 2, find its "back" neighbor (world -Z)
 const getBackNeighborForModule2 = (modules: Modules, mod2: Module): Module | null => {
-  // BACK relative to world (your modules are axis-aligned by design)
   const backPos = mod2.position.clone().add(new THREE.Vector3(0, 0, -12));
   const eps = 1e-3;
   for (const other of modules.modules) {
     if (other === mod2) continue;
     if (other.position.distanceTo(backPos) < eps) {
-      // ensure they're actually touching/connected back-to-front
       const delta = new THREE.Vector3().subVectors(other.position, mod2.position);
       const sideOnMod = sideFromDelta(delta);
       if (sideOnMod === Side.BACK) {
-        // also verify connection allowed on faces (defensive)
         const okAB = !!mod2.kind.connectable_sides?.[Side.BACK];
         const okBA = !!other.kind.connectable_sides?.[Side.FRONT];
         if (okAB && okBA) return other;
@@ -177,12 +171,51 @@ const getBackNeighborForModule2 = (modules: Modules, mod2: Module): Module | nul
   return null;
 };
 
-// A module is trashable iff it touches exactly one neighbor
+// Protect the original placed module
+let rootModule: Module | null = null;
+
+// A module is trashable iff it is NOT the root and touches exactly one neighbor
 const canTrash = (modules: Modules, mod: Module): boolean => {
+  if (rootModule && mod === rootModule) return false;
   const neighbors = getNeighbors(modules, mod);
   return neighbors.length === 1;
 };
 /* ================================== */
+
+/* ---------- Flash banner for invalid placement ---------- */
+let flashDiv: HTMLDivElement | null = null;
+let flashTimer: number | null = null;
+
+const ensureFlashDiv = () => {
+  if (flashDiv) return flashDiv;
+  flashDiv = document.createElement("div");
+  flashDiv.style.position = "fixed";
+  flashDiv.style.top = "12px";
+  flashDiv.style.left = "50%";
+  flashDiv.style.transform = "translateX(-50%)";
+  flashDiv.style.padding = "8px 14px";
+  flashDiv.style.borderRadius = "8px";
+  flashDiv.style.fontFamily = "system-ui, sans-serif";
+  flashDiv.style.fontSize = "14px";
+  flashDiv.style.color = "#fff";
+  flashDiv.style.background = "rgba(220, 0, 0, 0.9)";
+  flashDiv.style.boxShadow = "0 4px 12px rgba(0,0,0,0.25)";
+  flashDiv.style.zIndex = "9999";
+  flashDiv.style.display = "none";
+  document.body.appendChild(flashDiv);
+  return flashDiv;
+};
+
+const showFlash = (msg: string, ms = 1000) => {
+  const el = ensureFlashDiv();
+  el.textContent = msg;
+  el.style.display = "block";
+  if (flashTimer) window.clearTimeout(flashTimer);
+  flashTimer = window.setTimeout(() => {
+    if (flashDiv) flashDiv.style.display = "none";
+  }, ms);
+};
+/* -------------------------------------------------------- */
 
 let building = 0;
 let previewModule: Module | null = null;
@@ -249,6 +282,7 @@ load_kinds(() => {
     modules.add_module(m);
     m.primary_dir = Side.FRONT;
     m.secondary_dir = Side.LEFT;
+    rootModule = m; // protect
 });
 
 /* ============================
@@ -301,20 +335,20 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
             const targetMod = hitObj.module_data as Module;
             if (targetMod && canTrash(modules, targetMod)) {
                 const idx = getModuleIndex(targetMod);
-                // If Module 2, delete itself and the "back" neighbor (if present)
                 if (idx === 2) {
                     const backBuddy = getBackNeighborForModule2(modules, targetMod);
-                    // Trash main
                     modules.trash(targetMod);
-                    // Trash buddy if exists
                     if (backBuddy) modules.trash(backBuddy);
                 } else {
                     modules.trash(targetMod);
                 }
             } else {
-                console.log("Not deletable (must be touching exactly 1 neighbor).");
+                console.log("Not deletable (must touch exactly 1 neighbor and not the original).");
             }
         }
+
+        // auto-untoggle after one use
+        trashMode = false;
         return;
     }
 
@@ -339,7 +373,13 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
 
         const okAdd = isPlacementAllowed(targetForAdd, normal, building);
         if (!okAdd) {
-            console.log("❌ Invalid placement — this face cannot connect");
+            showFlash("You cannot place that there", 1000);
+            // clear “hand” (exit building mode and remove previews)
+            if (previewModules.length > 0) {
+              previewModules.forEach(p => scene.remove(p));
+              previewModules = [];
+            }
+            building = 0;
             return;
         }
 
@@ -385,7 +425,6 @@ renderer.domElement.addEventListener("mousemove", (event) => {
             const target: any = hit[0].object;
             const mod = target.module_data as Module;
             if (mod && canTrash(modules, mod)) {
-                // highlight the mod
                 tintModuleForTrash(mod, true);
                 trashHoverTargets.push(mod);
 
@@ -408,13 +447,11 @@ renderer.domElement.addEventListener("mousemove", (event) => {
     }
 
     // BUILD PREVIEW
-    // Remove previous preview modules
     if (previewModules.length > 0) {
         previewModules.forEach(obj => scene.remove(obj));
         previewModules = [];
     }
 
-    // Not building? no preview
     if (!building) return;
 
     const intersects = raycaster.intersectObject(modules.hitboxes, true);
@@ -422,7 +459,7 @@ renderer.domElement.addEventListener("mousemove", (event) => {
     if (intersects.length && intersects[0].face) {
         let obj: any = intersects[0].object;
         let normal = intersects[0].face.normal;
-        // 12-unit grid step out from the face
+
         let pos = new THREE.Vector3(
           obj.position.x + normal.x * 12,
           obj.position.y + normal.y * 12,
@@ -435,7 +472,6 @@ renderer.domElement.addEventListener("mousemove", (event) => {
                 const preview = new Module(kind);
                 preview.position = pos.clone();
 
-                // Set orientation based on normal (keep your mapping)
                 if (normal.x === 1) {
                     preview.primary_dir = Side.LEFT;
                     preview.secondary_dir = Side.FRONT;
@@ -547,9 +583,11 @@ if (evaluateBtn && crewModal) {
 
 if (trashBtn){
     trashBtn.addEventListener("click", () => {
-        // Turning trash mode on/off: also clear any red hover tint
-        for (const m of trashHoverTargets) tintModuleForTrash(m, false);
-        trashHoverTargets = [];
+        // Clicking garbage can toggles mode; when turning off, also clear hover tint
+        if (trashMode) {
+          for (const m of trashHoverTargets) tintModuleForTrash(m, false);
+          trashHoverTargets = [];
+        }
         trashMode = !trashMode;
     });
 }
