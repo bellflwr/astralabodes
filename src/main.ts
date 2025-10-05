@@ -15,8 +15,12 @@ const camera = new THREE.PerspectiveCamera(
     0.1,
     1000
 );
+camera.position.set(20, 20, 0);
 
-let building = false;
+let building = 0;
+let previewModule: Module | null = null;
+let previewPosition: THREE.Vector3 | null = null;
+let previewNormal: THREE.Vector3 | null = null;
 
 const loader = new THREE.TextureLoader();
 const texture = loader.load(
@@ -94,17 +98,94 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
             transitioning = true;
         }
     } else {
-
         const intersects = raycaster.intersectObject(modules.hitboxes);
-        if(intersects.length){
+        if (intersects.length && previewModule) {
             let obj = intersects[0].object;
             let normal = intersects[0].face.normal;
-            
-            let module = new Module(kinds.get("Module 1"));
-            module.position = new THREE.Vector3(obj.position.x + normal.x * 12, obj.position.y + normal.y * 12, obj.position.z + normal.z * 12);
-            modules.add_module(module)
-            building = false;
+            let pos = new THREE.Vector3(obj.position.x + normal.x * 12, obj.position.y + normal.y * 12, obj.position.z + normal.z * 12);
+            let module = new Module(kinds.get("Module " + building));
+            module.position = pos;
+            // Default directions
+            if (normal.x === 1) {
+                module.primary_dir = Side.LEFT;
+                module.secondary_dir = Side.FRONT;
+            } else if (normal.x === -1) {
+                module.primary_dir = Side.RIGHT;
+                module.secondary_dir = Side.FRONT;
+            } else if (normal.y === 1) {
+                module.primary_dir = Side.BOTTOM;
+                module.secondary_dir = Side.FRONT;
+            } else if (normal.y === -1) {
+                module.primary_dir = Side.TOP;
+                module.secondary_dir = Side.FRONT;
+            } else if (normal.z === 1) {
+                module.primary_dir = Side.BACK;
+                module.secondary_dir = Side.TOP;
+            } else if (normal.z === -1) {
+                module.primary_dir = Side.FRONT;
+                module.secondary_dir = Side.TOP;
+            }
+
+            // Invert module 2 if placed on another module 2
+            if (building === 2 && obj.parent && obj.parent.parent) {
+                const targetModule = modules.modules.find(m => m.hitbox === obj);
+                if (targetModule && targetModule.kind.name === "Module 2") {
+                    // Mirror along X axis for smooth blend
+                    module.object.scale.x *= -1;
+                }
+            }
+            // Remove preview and restore original materials
+            if (previewModule) {
+                scene.remove(previewModule.object);
+                previewModule = null;
+            }
+            modules.add_module(module);
+            building = 0;
         }
+    }
+});
+// Mouse move handler for preview
+renderer.domElement.addEventListener("mousemove", (event) => {
+    if (!building) return;
+    const mouse = new THREE.Vector2(
+        (event.clientX / window.innerWidth) * 2 - 1,
+        -(event.clientY / window.innerHeight) * 2 + 1
+    );
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObject(modules.hitboxes);
+    if (intersects.length) {
+        let obj = intersects[0].object;
+        let normal = intersects[0].face.normal;
+        let pos = new THREE.Vector3(obj.position.x + normal.x * 12, obj.position.y + normal.y * 12, obj.position.z + normal.z * 12);
+        previewPosition = pos;
+        previewNormal = normal.clone();
+        // Set preview rotation here
+        if (previewModule) {
+            const EPS = 0.99;
+            if (normal.x === 1) {
+                previewModule.primary_dir = Side.LEFT;
+                previewModule.secondary_dir = Side.FRONT;
+            } else if (normal.x === -1) {
+                previewModule.primary_dir = Side.RIGHT;
+                previewModule.secondary_dir = Side.FRONT;
+            } else if (normal.y === 1) {
+                previewModule.primary_dir = Side.BOTTOM;
+                previewModule.secondary_dir = Side.FRONT;
+            } else if (normal.y === -1) {
+                previewModule.primary_dir = Side.TOP;
+                previewModule.secondary_dir = Side.FRONT;
+            } else if (normal.z === 1) {
+                previewModule.primary_dir = Side.BACK;
+                previewModule.secondary_dir = Side.TOP;
+            } else if (normal.z === -1) {
+                previewModule.primary_dir = Side.FRONT;
+                previewModule.secondary_dir = Side.TOP;
+            }
+        }
+    } else {
+        previewPosition = null;
+        previewNormal = null;
     }
 });
 camera.position.z = 5;
@@ -122,8 +203,35 @@ function animate() {
         }
     }
 
-    controls.update();
+    // Preview module logic
+    if (building && previewPosition) {
+        if (!previewModule) {
+            previewModule = new Module(kinds.get("Module " + building));
+            previewModule.object.traverse(child => {
+                if ((child as THREE.Mesh).isMesh) {
+                    const mesh = child as THREE.Mesh;
+                    const makeGreen = (mat: THREE.Material) => {
+                        if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshBasicMaterial) {
+                            return new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5 });
+                        }
+                        return mat;
+                    };
+                    if (Array.isArray(mesh.material)) {
+                        mesh.material = mesh.material.map(makeGreen);
+                    } else {
+                        mesh.material = makeGreen(mesh.material);
+                    }
+                }
+            });
+            scene.add(previewModule.object);
+        }
+        previewModule.position = previewPosition.clone();
+    } else if (previewModule) {
+        scene.remove(previewModule.object);
+        previewModule = null;
+    }
 
+    controls.update();
     renderer.render(scene, camera);
 }
 
@@ -131,7 +239,8 @@ function animate() {
 const evaluateBtn = document.getElementById("evaluate-btn") as HTMLButtonElement;
 const crewModal = document.getElementById("crew-modal") as HTMLDivElement;
 const crewBtns = document.querySelectorAll(".crew-btn");
-const module1Btn = document.querySelector(".module-btn") as HTMLButtonElement;
+const module1Btn = document.querySelectorAll(".module-btn")[0] as HTMLButtonElement;
+const module2Btn = document.querySelectorAll(".module-btn")[1] as HTMLButtonElement;
 
 // Ensure modal is hidden on page load
 if (crewModal) {
@@ -158,10 +267,24 @@ if (evaluateBtn && crewModal) {
     });
 }
 
-// Module 1 button toggles building mode
 if (module1Btn) {
     module1Btn.addEventListener("click", () => {
-        building = !building;
-        module1Btn.classList.toggle("active", building);
+        building = 1;
+        // Remove any previous preview
+        if (previewModule) {
+            scene.remove(previewModule.object);
+            previewModule = null;
+        }
+    });
+}
+
+if (module2Btn) {
+    module2Btn.addEventListener("click", () => {
+        building = 2;
+        // Remove any previous preview
+        if (previewModule) {
+            scene.remove(previewModule.object);
+            previewModule = null;
+        }
     });
 }
