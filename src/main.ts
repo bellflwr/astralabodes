@@ -444,6 +444,9 @@ module7Btn?.addEventListener("click", () => setBuilding(7));
 module8Btn?.addEventListener("click", () => setBuilding(8));
 
 function animate() {
+  if (earth && earth.rotation) {
+    earth.rotation.y += 0.0005;
+  }
   controls.update();
   renderer.render(scene, camera);
 }
