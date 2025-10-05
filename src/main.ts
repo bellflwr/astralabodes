@@ -6,7 +6,7 @@ import { getBackNeighborForModule2, Modules, getNeighbors } from "./data/modules
 import { Object3D } from "three";
 import { isPlacementAllowed, Module } from "./data/module";
 import { Side, get_side_from_vector } from "./data/sides";
-import { SpecType } from "./data/specializations";
+import { specMeta, SpecType } from "./data/specializations";
 import { EffectComposer, GLTFLoader, RenderPass, ThreeMFLoader, type GLTF } from "three/examples/jsm/Addons.js";
 import { UnrealBloomPass } from "three/examples/jsm/Addons.js";
 import { getModuleIndex } from "./data/module_kind";
@@ -86,15 +86,27 @@ let problems_box: HTMLElement = document.getElementById("problems-box");
 
 if (specSelector && document.querySelectorAll('input[name="spectype"]').length === 0) {
   for (const [k, v] of Object.entries(SpecType)) {
-    specSelector.innerHTML += "<div>";
-    specSelector.innerHTML += `<input type="radio" name="spectype" id="${k}-radio" value="${v}" />`;
-    specSelector.innerHTML += `<label for="${k}-radio">${k}</label>`;
-    specSelector.innerHTML += "</div>";
+    let meta = specMeta.get(v);
+    if (!meta) {
+      meta = {
+        color: "#FF0000"
+      }
+    }
+    // specSelector.innerHTML += `<div style="background-color: ${meta.color};">
+    //   <input type="radio" name="spectype" id="${k}-radio" value="${v}" />
+    //   <label for="${k}-radio">${k}</label>
+    // </div>`;
+    specSelector.innerHTML += `<label style="background-color: ${meta.color};">
+      <input type="radio" name="spectype" id="${k}-radio" value="${v}" />
+      <span>${k}</span>
+    </label>`;
   }
 }
 for (let rb of document.querySelectorAll('input[name="spectype"]')) {
   rb.addEventListener("change", (e: any) => {
-    if (e.target?.checked && selectedModule) selectedModule.spec = e.target.value;
+    if (e.target?.checked && selectedModule) {
+      selectedModule.spec = e.target.value;
+    } 
   });
 }
 const openModuleModal = (mod: Module) => {
@@ -102,7 +114,7 @@ const openModuleModal = (mod: Module) => {
   const radios = document.querySelectorAll('input[name="spectype"]') as NodeListOf<HTMLInputElement>;
   radios.forEach((r) => (r.checked = false));
   if (selectedModule) {
-    const id = Object.keys(SpecType).find((k) => (SpecType as any)[k] === selectedModule!.spec);
+    const id = Object.keys(SpecType).find((k) => (SpecType as any)[k] == selectedModule.spec);
     if (id) {
       const el = document.getElementById(`${id}-radio`) as HTMLInputElement;
       if (el) el.checked = true;
@@ -111,8 +123,11 @@ const openModuleModal = (mod: Module) => {
   moduleModal?.classList.remove("modal-hidden");
 };
 moduleModal?.addEventListener("click", (e) => {
-  if (e.target === moduleModal) moduleModal.classList.add("modal-hidden");
+  if (e.target === moduleModal) {
+    moduleModal.classList.add("modal-hidden")
+  };
 });
+
 if (crewModal) crewModal.classList.add("modal-hidden");
 if (evaluateBtn && crewModal) {
   evaluateBtn.addEventListener("click", () => crewModal.classList.remove("modal-hidden"));
