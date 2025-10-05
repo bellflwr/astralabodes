@@ -3,12 +3,15 @@ import "./style.css";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { kinds, load_kinds } from "./module_kinds";
-import { Modules } from "./data/modules";
+import { getBackNeighborForModule2, Modules } from "./data/modules";
 import { Object3D } from "three";
-import { Module } from "./data/module";
-import { Side, faceFromNormalOnTarget, get_side_from_vector, sideFromDelta } from "./data/sides";
+import { isPlacementAllowed, Module } from "./data/module";
+import { Side, get_side_from_vector } from "./data/sides";
 import { SpecType } from "./data/specializations";
 import { point_light_color, point_light_intensity, ambient_light_color, ambient_light_intensity, transitionSpeed } from "./scene_settings";
+import { getModuleIndex } from "./data/module_kind";
+import { setPreviewTint, tintModuleForTrash } from "./editor";
+import { getNeighbors } from "./data/modules";
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
@@ -18,131 +21,6 @@ const camera = new THREE.PerspectiveCamera(
     1000
 );
 camera.position.set(20, 20, 0);
-
-const getModuleIndex = (mod?: Module): number => {
-  if (!mod) return -1;
-  const m = /(\d+)/.exec(mod.kind.name ?? "");
-  return m ? parseInt(m[1], 10) : -1;
-};
-
-/**
- * Placement rule (FRONT of 8):
- * - 3..7 can place on 3..7 only, OR on Module 8's FRONT face
- * - Otherwise, use target connectable_sides
- */
-const isPlacementAllowed = (
-  targetMod: Module | undefined,
-  faceNormal: THREE.Vector3,
-  placingIndex: number
-): boolean => {
-  if (!targetMod) return false;
-
-  const side = faceFromNormalOnTarget(faceNormal.clone().round());
-  const baseOK = !!(targetMod.kind.connectable_sides?.[side]);
-  const targetIndex = getModuleIndex(targetMod);
-
-  // 3..7 behavior
-  if (placingIndex >= 3 && placingIndex <= 7) {
-    if (targetIndex >= 3 && targetIndex <= 7) return baseOK;
-    if (targetIndex === 8) return baseOK && side === Side.FRONT;
-    return false;
-  }
-
-  // 8 FRONT can accept 1..7
-  if (targetIndex === 8 && side === Side.FRONT) {
-    return baseOK && placingIndex >= 1 && placingIndex <= 7;
-  }
-
-  return baseOK;
-};
-
-const setPreviewTint = (obj: THREE.Object3D, ok: boolean) => {
-  obj.traverse((child: any) => {
-    if (child.isMesh) {
-      const mat = child.material && child.material.clone ? child.material.clone() : new THREE.MeshStandardMaterial();
-      if (mat.color) {
-        mat.color.set(ok ? 0x00ff00 : 0xff0000);
-        mat.transparent = true;
-        mat.opacity = 0.6;
-        if ('emissive' in mat) mat.emissive.set(ok ? 0x003300 : 0x330000);
-      }
-      child.material = mat;
-    }
-  });
-};
-
-/* ---------- Trash helpers ---------- */
-
-// Highlight a module for trash hover (red), and allow clearing later
-const tintModuleForTrash = (mod: Module, on: boolean) => {
-  mod.object.traverse((child: any) => {
-    if (!child.isMesh) return;
-    if (on) {
-      if (!child.userData._origMat) {
-        child.userData._origMat = child.material;
-      }
-      const mat = new THREE.MeshStandardMaterial({
-        color: 0xff0000,
-        transparent: true,
-        opacity: 0.6,
-        emissive: new THREE.Color(0x330000)
-      });
-      child.material = mat;
-    } else {
-      if (child.userData._origMat) {
-        child.material = child.userData._origMat;
-        child.userData._origMat = null;
-      }
-    }
-  });
-};
-
-// For a given module, list neighbors exactly 12 units away along one axis, honoring connectable_sides
-const getNeighbors = (modules: Modules, mod: Module): Array<{ neighbor: Module, sideOnMod: Side, sideOnNei: Side }> => {
-  const out: Array<{ neighbor: Module, sideOnMod: Side, sideOnNei: Side }> = [];
-  for (const other of modules.modules) {
-    if (other === mod) continue;
-    const delta = new THREE.Vector3().subVectors(other.position, mod.position);
-    const sideOnMod = sideFromDelta(delta);
-    if (sideOnMod === null) continue;
-    const opposite = (s: Side): Side => {
-      switch (s) {
-        case Side.TOP: return Side.BOTTOM;
-        case Side.BOTTOM: return Side.TOP;
-        case Side.LEFT: return Side.RIGHT;
-        case Side.RIGHT: return Side.LEFT;
-        case Side.FRONT: return Side.BACK;
-        case Side.BACK: return Side.FRONT;
-      }
-    };
-    const sideOnNei = opposite(sideOnMod);
-    const okAB = !!mod.kind.connectable_sides?.[sideOnMod];
-    const okBA = !!other.kind.connectable_sides?.[sideOnNei];
-    if (okAB && okBA) {
-      out.push({ neighbor: other, sideOnMod, sideOnNei });
-    }
-  }
-  return out;
-};
-
-// Special: for Module 2, find its "back" neighbor (world -Z)
-const getBackNeighborForModule2 = (modules: Modules, mod2: Module): Module | null => {
-  const backPos = mod2.position.clone().add(new THREE.Vector3(0, 0, -12));
-  const eps = 1e-3;
-  for (const other of modules.modules) {
-    if (other === mod2) continue;
-    if (other.position.distanceTo(backPos) < eps) {
-      const delta = new THREE.Vector3().subVectors(other.position, mod2.position);
-      const sideOnMod = sideFromDelta(delta);
-      if (sideOnMod === Side.BACK) {
-        const okAB = !!mod2.kind.connectable_sides?.[Side.BACK];
-        const okBA = !!other.kind.connectable_sides?.[Side.FRONT];
-        if (okAB && okBA) return other;
-      }
-    }
-  }
-  return null;
-};
 
 // Protect the original placed module
 let rootModule: Module | null = null;
