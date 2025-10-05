@@ -8,6 +8,8 @@ import { Object3D } from "three";
 import { Module } from "./data/module";
 import { Side, direction_vectors } from "./data/sides";
 import { SpecType } from "./data/specializations";
+import { EffectComposer, GLTFLoader, RenderPass, ThreeMFLoader, type GLTF } from "three/examples/jsm/Addons.js";
+import { UnrealBloomPass } from "three/examples/jsm/Addons.js";
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
@@ -17,6 +19,25 @@ const camera = new THREE.PerspectiveCamera(
     1000
 );
 camera.position.set(20, 20, 0);
+
+const modelLoader = new GLTFLoader();
+
+let earth: Object3D;
+let moon: Object3D;
+
+modelLoader.load("models/Earth.glb", function(gltf: GLTF){
+  earth = gltf.scene;
+  scene.add(earth);
+  earth.position.set(-700, -650, 250);
+  earth.scale.set(5, 5, 5);
+})
+
+modelLoader.load("models/Moon.glb", function(gltf: GLTF){
+  moon = gltf.scene;
+  scene.add(moon);
+  moon.position.set(600, -300, 700);
+  moon.scale.set(2, 2, 2);
+})
 
 /* ============================
    Placement + Trash Helpers
@@ -540,6 +561,11 @@ function animate() {
         }
     }
 
+    if (earth && moon){
+      earth.rotation.y += 0.0005;
+      moon.rotation.y -= 0.001;
+    }
+
     controls.update();
     renderer.render(scene, camera);
 }
@@ -617,3 +643,4 @@ let problems_box: HTMLElement = document.getElementById("problems-box");
 problems_box?.addEventListener("click", (ev) => {
     problems_box.classList.toggle("open");
 });
+
