@@ -8,6 +8,7 @@ import { Object3D } from "three";
 import { Module } from "./data/module";
 import { Side, get_side_from_vector } from "./data/sides";
 import { SpecType } from "./data/specializations";
+import { point_light_color, point_light_intensity, ambient_light_color, ambient_light_intensity, transitionSpeed } from "./scene_settings";
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
@@ -220,8 +221,6 @@ const showFlash = (msg: string, ms = 1000) => {
 let building = 0;
 let previewModule: Module | null = null;
 let previewModules: THREE.Object3D[] = [];
-let previewPosition: THREE.Vector3 | null = null;
-let previewNormal: THREE.Vector3 | null = null;
 let trashMode = false;
 
 let selectedModule: Module | null = null;
@@ -244,19 +243,7 @@ document.body.appendChild(renderer.domElement);
 
 let transitioning = false;
 let transitionTarget = new THREE.Vector3();
-const transitionSpeed = 0.1;
-
 const controls = new OrbitControls(camera, renderer.domElement);
-
-const geometry = new THREE.BoxGeometry(1, 1, 1);
-const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-const cube = new THREE.Mesh(geometry, material);
-
-const point_light_color = 0xffffff;
-const point_light_intensity = 3;
-
-const ambient_light_color = 0xffffff;
-const ambient_light_intensity = 1;
 
 const light = new THREE.DirectionalLight(
     point_light_color,
@@ -516,9 +503,6 @@ renderer.domElement.addEventListener("mousemove", (event) => {
 camera.position.z = 5;
 
 function animate() {
-    cube.rotation.x += 0.01;
-    cube.rotation.y += 0.01;
-
     if (transitioning) {
         controls.target.lerp(transitionTarget, transitionSpeed);
         if (controls.target.distanceTo(transitionTarget) < 0.01) {
