@@ -1,6 +1,6 @@
 const SpecType = {
     Unassigned: 0,
-    Sleeping: 1,
+    Hygiene: 1,
     Medical: 2,
     Meal: 3,
     Exercise: 4,
@@ -31,18 +31,18 @@ const specMeta: Map<SpecType, SpecMeta> = new Map([
         },
     ],
     [
-        SpecType.Sleeping,
+        SpecType.Hygiene,
         {
-            description: "Used for sleeping",
-            min_space: 123456789,
+            description: "Grooming, skin care, cleaning, shaving.",
+            min_space: 6.69,
             color: "#7ca9ceff",
         },
     ],
     [
         SpecType.Medical,
         {
-            description: "Yeowch",
-            min_space: 123456789,
+            description: "Advanced medical care, dental care.",
+            min_space: 10.4,
             color: "#ce7cafff",
         },
     ],
